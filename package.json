@@ -1,0 +1,28 @@
+{
+  "main": "index.html",
+  "name": "UPNG",
+  "description": "demo app of UPNG",
+  "version": "0.1.0",
+  "keywords": [
+    "demo",
+    "UPNG"
+  ],
+  "window": {
+    "toolbar": true,
+    "show_in_taskbar": true,
+    "width": 1200,
+    "height": 1200,
+    "min_width": 900,
+    "min_height": 600,
+    "icon": "iron_giant.png",
+    "resizable": true,
+    "frame": true
+  },
+  "webkit": {
+    "plugin": true
+  },
+  "dependencies": {
+    "pako": "^1.0.6",
+    "upng-js": "^2.0.0"
+  }
+}
