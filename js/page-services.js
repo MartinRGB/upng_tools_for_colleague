@@ -1,7 +1,7 @@
 //Main Here
 
-const UPNG = require('./UPNG.js')
-const UZIP = require('./UZIP.js')
+const UPNG = require('./js/UPNG.js')
+const UZIP = require('./js/UZIP.js')
 
 
 var pngs = [];

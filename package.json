@@ -3,10 +3,10 @@
   "productName": "PNG Minifier",
   "version": "0.1.0",
   "description": "A PNG minifier based on UPNG.js",
-  "main": "./main.js",
+  "main": "./js/main.js",
   "scripts": {
     "start": "electron .",
-    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=asset/app.icns --prune=true --out=release-builds"
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=asset/pngm.icns --prune=true --out=release-builds"
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "license": "CC0-1.0",

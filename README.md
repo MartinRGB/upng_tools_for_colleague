@@ -9,6 +9,8 @@ npm install
 # start an electron app
 npm start
 
+# build a macOS app
+npm run package-mac
 ```
 
 check [this](https://www.christianengvall.se/electron-packager-tutorial/) tutorial for package.
