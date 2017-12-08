@@ -1,5 +1,10 @@
 optimize for UPNG Minifier
 
+## TODO
+
+- [ ] Redesign the ugly Interface
+- [ ] Estimate the compression ratio for experience
+
 ## Build Setup
 
 ``` bash
@@ -31,7 +36,7 @@ npm install electron-packager -g
 
 [Release](https://github.com/MartinRGB/upng_tools_for_colleague/releases)
 
-## Electron Branch
+## Master Branch
 
 [Master Branch](https://github.com/MartinRGB/upng_tools_for_colleague/tree/master)
 
