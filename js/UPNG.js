@@ -1,4 +1,4 @@
-
+const pako = require('./pako.js')
 ;(function(){
 var UPNG = {};
 

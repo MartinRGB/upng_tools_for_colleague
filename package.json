@@ -1,28 +1,26 @@
 {
-  "main": "index.html",
-  "name": "UPNG",
-  "description": "demo app of UPNG",
-  "version": "0.1.0",
-  "keywords": [
-    "demo",
-    "UPNG"
-  ],
-  "window": {
-    "toolbar": true,
-    "show_in_taskbar": true,
-    "width": 1200,
-    "height": 1200,
-    "min_width": 900,
-    "min_height": 600,
-    "icon": "iron_giant.png",
-    "resizable": true,
-    "frame": true
+  "name": "electron-quick-start",
+  "version": "1.0.0",
+  "description": "A minimal Electron application",
+  "main": "./js/main.js",
+  "scripts": {
+    "start": "electron ."
   },
-  "webkit": {
-    "plugin": true
+  "repository": "https://github.com/electron/electron-quick-start",
+  "keywords": [
+    "Electron",
+    "quick",
+    "start",
+    "tutorial",
+    "demo"
+  ],
+  "author": "GitHub",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "electron": "~1.7.8",
+    "webpack": "^3.10.0"
   },
   "dependencies": {
-    "pako": "^1.0.6",
-    "upng-js": "^2.0.0"
+    "electron-drag": "^1.2.0"
   }
 }

@@ -1,31 +1,27 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="UTF-8">
+    <title>UPNG.js</title>
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=UA-4249565-44"></script> -->
+    <!-- <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());  gtag('config', 'UA-4249565-44');
+    </script> -->
+    <link type="text/css" rel="stylesheet" href="./style/style.css" />
+    <!-- <script src="./js/pako.js"></script>
+    <script src="./js/UPNG.js"></script>
+    <script src="./js/UZIP.js"></script> -->
+		<script src="./js/page-services.js"></script>
+  </head>
+  <body>
+  </body>
 
-<head>
-	
-	<!-- Global site tag (gtag.js) - Google Analytics -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-4249565-44"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());  gtag('config', 'UA-4249565-44');
-	</script>
-
-	<meta charset="utf-8" />
-	<title>PNG minifier</title>
-	<link type="text/css" rel="stylesheet" href="style.css" />
-	<script src="js/pako.js"></script>
-	<script src="js/UPNG.js"></script>
-	<script src="js/UZIP.js"></script>
-	<script src="js/main.js"></script>
-
-
-</head>
-
-
-	<body onload="Go();" style="-webkit-app-region: drag">
+  <!-- All of the Node.js APIs are available in this renderer process. -->
+  <body id="this-body" onload="PageServices.Go();">
 		<header>
-			<h1><span style="font-size:1.5em">PNG Minifier</span><br/> fast PNG minifier based on <a href="https://github.com/photopea/UPNG.js" target="_blank">UPNG.js</a></h1>
+			<h1><span style="font-size:1.5em">PNG Minifier(Offline Version)</span><br/> fast PNG minifier based on <a href="https://github.com/photopea/UPNG.js" target="_blank">UPNG.js</a></h1>
 			
 		</header>
 		
@@ -34,8 +30,8 @@
 				<div id="list">
 					<div style="font-size:1.3em; padding:1em; text-align:center;">
 
-						<span style="font-size:1.5em; display:inline-block; padding:0.6em 0.2em; margin:0 1.4em; border:5px dashed #555; border-radius:0.6em; cursor:pointer;"
-							onclick="showOpenDialog()" >
+						<span id="drag-area" style="font-size:1.5em; display:inline-block; padding:0.6em 0.2em; margin:0 1.4em; border:5px dashed #555; border-radius:0.6em; cursor:pointer;"
+							onclick="PageServices.showOpenDialog()" >
 							Drag and drop your PNG files!</span>
 						<!--<input name="myFile" type="file" onchange="onFileDrop(this)" multiple>-->
 					</div>
@@ -49,23 +45,28 @@
 		<footer>
 				<div>
 				<label>Size</label> 
-				<input type="range" id="eRNG" min="0" max="1000" value="500" style="width:300px; vertical-align:middle;" oninput="moveQual(this.value)" />
+				<input type="range" id="eRNG" min="0" max="1000" value="500" style="width:300px; vertical-align:middle;" oninput="PageServices.moveQual(this.value)" />
 				<label>Quality</label> 
 				</div>
 				<div>
-				<button onclick="saveAll();" style="
+				<button onclick="PageServices.saveAll();" style="
 				margin-top: 30px;
 				left: -72px;
 				position: relative;
 				background-color: #27ae60;
 			">Save all (ZIP)</button>
-				<button onclick="resetCurrent();" style="
+				<button onclick="PageServices.resetCurrent();" style="
 				position: relative;
 				left: -72px;
 			">Reset</button>
 				</div>
 		</footer>
-		</div>
+    </div>
+    
+    <script>
+      // You can also require other files to run in this process
+			require('./js/renderer.js')
+		</script>
+		<!-- <script src="./js/page-services.js"></script> -->
 	</body>
-
 </html>
