@@ -1,4 +1,4 @@
-# nwjs_upng_tools_for_colleague
+# upng_tools_for_colleague
 
 To preview this static web,you need install [Browsersync](http://www.browsersync.cn/)
 
