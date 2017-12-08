@@ -27,3 +27,11 @@ npm install electron-packager -g
 
 ```
 
+## Release Download
+
+[Release](https://github.com/MartinRGB/upng_tools_for_colleague/releases)
+
+## Electron Branch
+
+[Master Branch](https://github.com/MartinRGB/upng_tools_for_colleague/tree/master)
+
