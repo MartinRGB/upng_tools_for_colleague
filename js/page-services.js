@@ -8,7 +8,7 @@ var pngs = [];
 var curr = -1;
 var cnum = 256;	// quality
 var cnv, ctx;
-var main, list, totl, fopn
+var main, list, totl, fopn,lbottom,lmiddle;
 var viw = 0, vih = 720;
 var limitedvih = 720,limitedviw = 720 ;
 var ioff = {x:0, y:0}, mouse=null;
@@ -47,7 +47,17 @@ function addPNG(buff, name)
     var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
     var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
     var nc = pngs.length;  pngs.push(npng);  recompute(nc);  setCurr(nc);
+
+    if(lbottom.offsetHeight != 203+1){
+        lbottom.setAttribute("style", "height:"+(203)+"px;");
+        lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+    }
 }
+
+
+
+
+
 function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};  update();  }
 
 function recompute(i) {
@@ -144,12 +154,19 @@ function update()
                              li.addEventListener("click", itemClick, false);    }
         else              {  iname="Total:";  os = tos;  ns = tns;  cont = totl;  }
         
-        var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
+        var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
         
-        cnt += toBlock(toKB(os)) + toBlock("➜",2) + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span>");
+        
+        //toBlock("➜",2)
+        cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
+        + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span></div></div>");
         //if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
         li.innerHTML = cnt;
-        var btn = document.createElement("button");   btn.innerHTML = "Save";  if(i<pngs.length) li.appendChild(btn);
+        var btncontainer = document.createElement("div");
+        btncontainer.id="btn-container";
+        var btn = document.createElement("button");   btn.innerHTML = "<span class=\"icon-download---FontAwesome\"></span><span style=\"margin-left: 5px;font-size: 16px;font-weight: bold;\"> SAVE</span>";  
+        if(i<pngs.length) li.appendChild(btncontainer);
+        btncontainer.appendChild(btn);
         
         if(pngs.length!=0)  cont.appendChild(li);
     }
@@ -214,7 +231,10 @@ const PageServices = {
         //loadURL("grid.png");  loadURL("bunny.png");
 
         hasAdded = false;
-        
+
+
+        lmiddle = document.getElementById("l-middle");
+        lbottom = document.getElementById("l-bottom");
         main = document.getElementById("main");  
         list = document.getElementById("list");
         totl = document.getElementById("totl");

@@ -41,6 +41,28 @@
 					</div>
 				</div>
 				<div id="l-bottom">
+						<div id="slider">
+							<div id="slider-container">
+								<label style="padding-right:15px;">Size</label> 
+								<input type="range" id="eRNG" min="10" max="1010" value="500" style="width:294px; vertical-align:middle;" oninput="PageServices.moveQual(this.value)" />
+								<label style="padding-left:15px;">Quality</label> 
+							</div>
+						</div>
+						<div id="button-area">
+							<div id="button-container">
+								<button onclick="PageServices.saveAll();" style="
+										position: absolute;
+										background-color: #4C63E8;
+										width: 280px;">
+										<span class="icon-download---FontAwesome"></span><span> SAVE ALL (ZIP)</span>
+								</button>
+								<button onclick="PageServices.resetCurrent();" style="
+								position: absolute;
+								right: 20px;">
+									<span class="icon-refresh---FontAwesome" style="position: absolute;left: 32px;top: 15px;"></span><span style="    position: absolute;right: 32px;top: 13px;"> Reset</span>
+								</button>
+							</div>
+						</div>
 						<div id="totl" class="active"></div>
 						
 				</div>
@@ -51,26 +73,6 @@
 			</div>
 		</div>
 		
-		<div class="foot">
-		<footer>
-				<div>
-				<label>Size</label> 
-				<input type="range" id="eRNG" min="0" max="1000" value="500" style="width:300px; vertical-align:middle;" oninput="PageServices.moveQual(this.value)" />
-				<label>Quality</label> 
-				</div>
-				<div>
-				<button onclick="PageServices.saveAll();" style="
-				margin-top: 30px;
-				left: -72px;
-				position: relative;
-				background-color: #27ae60;
-			">Save all (ZIP)</button>
-				<button onclick="PageServices.resetCurrent();" style="
-				position: relative;
-				left: -72px;
-			">Reset</button>
-				</div>
-		</footer>
     </div>
     
     <script>
