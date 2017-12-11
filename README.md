@@ -1,5 +1,7 @@
 optimize for UPNG Minifier
 
+![preview](https://raw.githubusercontent.com/MartinRGB/upng_tools_for_colleague/electron/art/v020.png)
+
 ## TODO
 
 - [ ] Redesign the ugly Interface
