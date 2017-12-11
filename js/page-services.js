@@ -9,8 +9,8 @@ var curr = -1;
 var cnum = 256;	// quality
 var cnv, ctx;
 var main, list, totl, fopn
-var viw = 0, vih = 600;
-var limitedvih = 0 ;
+var viw = 0, vih = 720;
+var limitedvih = 720,limitedviw = 720 ;
 var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
 
@@ -98,7 +98,11 @@ function updateValue(){
     // Canvas Size
     var dpr = getDPR();
     var iw = window.innerWidth-2;
-    var pw = Math.floor(Math.min(iw-500, iw/2)*dpr);
+
+    //Changed to fixed Value;
+    // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
+    // var ph = 720; //Math.floor(limitedvih*dpr)
+    var pw = Math.floor(limitedviw*dpr);
     var ph = Math.floor(limitedvih*dpr);
         
 
@@ -156,13 +160,20 @@ function update()
     // Canvas Size
     var dpr = getDPR();
     var iw = window.innerWidth-2;
-    var pw = Math.floor(Math.min(iw-500, iw/2)*dpr);
-    
+
+    //Changed to fixed value
+    // var pw = 720;  //Math.floor(Math.min(iw-500, iw/2)*dpr)
+    // var ph = 720;  //Math.floor(limitedvih*dpr)
+    var pw = Math.floor(limitedviw*dpr);
     var ph = Math.floor(limitedvih*dpr);
         
     cnv.width = pw;  cnv.height = ph;
-    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
+    //(16/getDPR())
+    // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
+    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
     cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
+
+    // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
     
 
 
@@ -243,6 +254,7 @@ const PageServices = {
                 if(val>990) cnum=0;
                 else cnum = Math.max(2, Math.round(510*val/1000));
                 for(var i=0; i<pngs.length; i++) recompute(i);
+                // Only recompute Curr Img
                 // recompute(curr)
                 // update();
                 updateValue()
@@ -291,11 +303,17 @@ function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighl
 function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
 function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
 function resize(e) {  
-    vih = window.innerHeight-(250)-4;
-    limitedvih = Math.min(700,vih)
-    viw = Math.min(1000, window.innerWidth-2);//1000;//Math.max(800, Math.floor(window.innerWidth*0.75));
-    main.setAttribute("style", "width:"+viw+"px; height:"+limitedvih+"px;");
-    list.setAttribute("style", "height:"+(limitedvih-40)+"px;");
+    //Change to fixed value
+    // vih = window.innerHeight-(250)-4;
+    // limitedvih = Math.min(700,vih)
+    // viw = Math.min(1000, window.innerWidth-2);//1000;//Math.max(800, Math.floor(window.innerWidth*0.75));
+    // main.setAttribute("style", "width:"+viw+"px; height:"+limitedvih+"px;");
+    // list.setAttribute("style", "height:"+(limitedvih-40)+"px;");
+
+    vih = window.innerHeight;
+    viw = window.innerWidth - 480;
+    limitedvih = Math.max(720,vih)
+    limitedviw = Math.max(720,viw)
     update();
 }
 

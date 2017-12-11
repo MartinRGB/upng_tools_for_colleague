@@ -74,15 +74,77 @@
 	}
 
 	#main { 
-		margin:0 auto;
+		/* margin:0 auto; */
 		overflow-x:visible;
+
+		width: 1200px;
+		margin: 0;
+		height: 720px;
 	}
-	
-	#lcont {
-		width: 500px;
+
+	#left{
+		height: 720px;
+		width: 480px;
 		float:left;
 	}
+
+	#l-top{
+		float:left;
+		width: 480px;
+		height:106px;
+		background: #4C63E8;
+		background-size:contain;
+		background-image:url("../asset/l-top@2x.jpg");
+		position: absolute;
+		top: 0;
+	}
+	#l-middle {
+		/* width: 500px; */
+		float:left;
+		width: 480px;
+		/* height: 411px; */
+		background: #F6F7FB;
+		position: absolute;
+		top: 106px;
+		height: -moz-calc(100% - (106px + 203px));
+		height: -webkit-calc(100% - (106px + 203px));
+		height: calc(100% - (106px + 203px));
+	}
+
+	#drag-area{
+		font-size: 1.5em;
+		display: inline-block;
+		height: 358px;
+		width: 426px;
+		line-height: 358px;
+		/* vertical-align: middle; */
+		/* padding: 0.6em 0.2em; */
+		/* margin: 0 1.4em; */
+		border: 5px dashed #555;
+		border-radius: 0.6em;
+		cursor: pointer;
+
+		/* font-size:1.5em; display:inline-block; padding:0.6em 0.2em; margin:0 1.4em; border:5px dashed #555; border-radius:0.6em; cursor:pointer; */
+	}
+
+	#l-bottom{
+		float:left;
+		width: 480px;
+		height:203px;
+		background: #fff;
+		position: absolute;
+		bottom: 0;
+	}
+
+	#right{
+		float: left;
+		height: 720px;
+		width: 720px;
+	}
+
 	#list {
+		/* max-height: 411px; */
+		height: 100%;
 		overflow-y:scroll;
 	}
 	#list::-webkit-scrollbar {
@@ -100,7 +162,12 @@
 	}
 	
 	.active {
-		background-color: rgba(0,100,190,0.15);
+		/* background-color: rgba(0,100,190,0.15); */
+	}
+
+	#totl .item{
+		border-bottom: 1px solid #EBECF1;
+		border-top:1px solid #EBECF1;
 	}
 	
 	.item .fname {

@@ -20,25 +20,35 @@
 
   <!-- All of the Node.js APIs are available in this renderer process. -->
   <body id="this-body" onload="PageServices.Go();">
-		<header>
+		<!-- <header>
 			<h1><span style="font-size:1.5em">PNG Minifier(Offline Version)</span><br/> fast PNG minifier based on <a href="https://github.com/photopea/UPNG.js" target="_blank">UPNG.js</a></h1>
 			
-		</header>
+		</header> -->
 		
 		<div id="main">
-			<div id="lcont">
-				<div id="list">
-					<div style="font-size:1.3em; padding:1em; text-align:center;">
+			<div id="left">
+				<div id="l-top">
 
-						<span id="drag-area" style="font-size:1.5em; display:inline-block; padding:0.6em 0.2em; margin:0 1.4em; border:5px dashed #555; border-radius:0.6em; cursor:pointer;"
-							onclick="PageServices.showOpenDialog()" >
-							Drag and drop your PNG files!</span>
-						<!--<input name="myFile" type="file" onchange="onFileDrop(this)" multiple>-->
+				</div>
+				<div id="l-middle">
+					<div id="list">
+						<div style="font-size:1.3em; padding:1em; text-align:center;">
+
+							<span id="drag-area" onclick="PageServices.showOpenDialog()" >
+								Drag PNG files here!</span>
+							<!--<input name="myFile" type="file" onchange="onFileDrop(this)" multiple>-->
+						</div>
 					</div>
 				</div>
-				<div id="totl" class="active"></div>
+				<div id="l-bottom">
+						<div id="totl" class="active"></div>
+						
+				</div>
+
 			</div>
-			<canvas id="cnv"></canvas>
+			<div id="right">
+				<canvas id="cnv"></canvas>
+			</div>
 		</div>
 		
 		<div class="foot">
