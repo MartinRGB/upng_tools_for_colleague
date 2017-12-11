@@ -2,6 +2,7 @@
 
 const UPNG = require('./js/UPNG.js')
 const UZIP = require('./js/UZIP.js')
+var Promise = require('promise');
 
 
 var pngs = [];
@@ -13,6 +14,7 @@ var viw = 0, vih = 720;
 var limitedvih = 720,limitedviw = 720 ;
 var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
+var qualValue = 500;
 
 
 function save(buff, path)
@@ -135,6 +137,40 @@ function updateValue(){
 
 }
 
+function moveCurr(curr)
+{
+
+    
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+    // cnv.width = pw;  
+    // cnv.height = ph;
+
+    // Update Current Image When Compressing
+
+
+    if(curr!=-1) {
+        var p = pngs[curr], l = p.width*p.height*4;		
+        var imgd = ctx.createImageData(p.width, p.height);
+        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+        //center
+        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+    }
+
+}
+
+
 function update()
 {
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
@@ -218,7 +254,10 @@ function update()
     }
     // 
 }
-function itemClick(e) {  var ind=e.currentTarget._indx;  setCurr(ind);  var p=pngs[ind];  if(e.target.tagName=="BUTTON") save(p.ndata, p.name);   }
+
+
+function itemClick(e) {  var ind=e.currentTarget._indx;  setCurr(ind);  var p=pngs[ind];  if(e.target.tagName=="BUTTON") save(p.ndata, p.name);   
+}
 
 function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
 function toBlock(txt, w) {  var st = w ? " style=\"width:"+w+"em;\"":"";  return "<span"+st+">"+txt+"</span>";  }
@@ -268,17 +307,21 @@ const PageServices = {
         fopn.dispatchEvent(evt);
     },
 
+
     moveQual:function(val) {  
-            if(hasAdded){
-        
-                if(val>990) cnum=0;
-                else cnum = Math.max(2, Math.round(510*val/1000));
-                for(var i=0; i<pngs.length; i++) recompute(i);
-                // Only recompute Curr Img
-                // recompute(curr)
-                // update();
-                updateValue()
-            }
+        if(hasAdded){
+    
+            // 影响速度
+            // if(val>990) cnum=0;
+            // else cnum = Math.max(2, Math.round(510*val/1000));
+            // for(var i=0; i<pngs.length; i++) recompute(i);
+            // // Only recompute Curr Img
+            // // recompute(curr)
+            // // update();
+            // updateValue()
+
+            qualValue = val;
+        }
     },
 
     resetCurrent:function (){
@@ -288,17 +331,33 @@ const PageServices = {
             cnum = Math.max(2, Math.round(510*500/1000));
             for(var i=0; i<pngs.length; i++) recompute(i);
             updateValue()
-            
-
+        
         }
+
+        return new Promise((resolve, reject) => {
+            console.log('reseted');
+        });
 
         // window.location.reload(false); 
     },
     saveAll:function ()
     {
-        var obj = {};
-        for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
-        save(UZIP.encode(obj).buffer, "compressed_images.zip");
+        // Original
+        // var obj = {};
+        // for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
+        // save(UZIP.encode(obj).buffer, "compressed_images.zip");
+
+        if(qualValue>990) cnum=0;
+        else cnum = Math.max(2, Math.round(510*qualValue/1000));
+        for(var i=0; i<pngs.length; i++) recompute(i);
+        // Only recompute Curr Img
+        // recompute(curr)
+        // update();
+        updateValue()
+
+        return new Promise((resolve, reject) => {
+            console.log('compressed');
+        });
     }
 
 
@@ -306,7 +365,12 @@ const PageServices = {
 }
 
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
-function onMM(e) {  ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;  update();  }
+function onMM(e) {  
+    ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
+
+    moveCurr(curr);  
+
+}
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
 
 
@@ -321,7 +385,16 @@ function onFileDrop(e) {  cancel(e);
         r.readAsArrayBuffer(f);
     }
 }			
-function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighlight(e); }
+function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighlight(e); 
+    return new Promise((resolve, reject) => {
+        // ?异步操作，最终调用:
+        //
+        //   resolve(someValue); // fulfilled
+        // ?或
+        //   reject("failure reason"); // rejected
+        console.log('loaded');
+    });
+}
 function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
 function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
 function resize(e) {  

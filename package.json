@@ -13,9 +13,11 @@
   "devDependencies": {
     "electron": "^1.7.9",
     "electron-package": "^0.1.0",
+    "electron-packager": "^10.1.0",
     "webpack": "^3.10.0"
   },
   "dependencies": {
-    "pako": "^1.0.6"
+    "pako": "^1.0.6",
+    "promise": "^8.0.1"
   }
 }
