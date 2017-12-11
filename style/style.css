@@ -76,18 +76,22 @@
 
 	#drag-area{
 		font-size: 1.5em;
-		display: inline-block;
-		height: 358px;
+		height: 100%;
 		width: 426px;
 		line-height: 358px;
-		/* vertical-align: middle; */
-		/* padding: 0.6em 0.2em; */
-		/* margin: 0 1.4em; */
-		border: 5px dashed #555;
+		display: inline-flex;
+		border: 5px dashed #EBECF1;
 		border-radius: 0.6em;
 		cursor: pointer;
+	}
 
-		/* font-size:1.5em; display:inline-block; padding:0.6em 0.2em; margin:0 1.4em; border:5px dashed #555; border-radius:0.6em; cursor:pointer; */
+	.drag-placeholder{
+		background-image:  url("../asset/drag-placeholder.png");
+		background-size:100%;
+		width: 181px;
+		height: 120px;
+		display: inline-block;
+		margin: auto;
 	}
 
 	#l-bottom{
@@ -270,7 +274,11 @@
 
 	#list #meta-container{
 		margin-left: 15px;
-		margin-top: 10px;
+		margin-top: 3px;
+		white-space: nowrap;
+		overflow: hidden;
+		max-width: 284px;
+		text-overflow: ellipsis;
 	}
 
 	#list .item .fname {
@@ -280,6 +288,10 @@
 		color: #515666;
 		margin-top: 15px;
 		margin-left: 15px;
+		white-space: nowrap;
+		overflow: hidden;
+		max-width: 284px;
+		text-overflow: ellipsis;
 	}
 
 	#list .item span {
@@ -309,6 +321,8 @@
 	#btn-container{
 		display: inline-block;
 		float: right;
+		position: absolute;
+		right: 0px;
 	}
 
 	#btn-container button{

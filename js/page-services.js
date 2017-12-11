@@ -291,6 +291,8 @@ const PageServices = {
             
 
         }
+
+        // window.location.reload(false); 
     },
     saveAll:function ()
     {

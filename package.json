@@ -1,7 +1,7 @@
 {
   "name": "png-minifier",
   "productName": "PNG Minifier",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A PNG minifier based on UPNG.js",
   "main": "./js/main.js",
   "scripts": {

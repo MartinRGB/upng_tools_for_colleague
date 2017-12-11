@@ -32,10 +32,12 @@
 				</div>
 				<div id="l-middle">
 					<div id="list">
-						<div style="font-size:1.3em; padding:1em; text-align:center;">
+						<div style="font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;">
 
-							<span id="drag-area" onclick="PageServices.showOpenDialog()" >
-								Drag PNG files here!</span>
+							<div id="drag-area" onclick="PageServices.showOpenDialog()" >
+								<div class="drag-placeholder"></div>
+								<!-- <span>Drag PNG files here!</span> -->
+							</div>
 							<!--<input name="myFile" type="file" onchange="onFileDrop(this)" multiple>-->
 						</div>
 					</div>
