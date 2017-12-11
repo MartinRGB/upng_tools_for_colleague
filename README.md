@@ -4,6 +4,7 @@ optimize for UPNG Minifier
 
 - [ ] Redesign the ugly Interface
 - [ ] Estimate the compression ratio for experience
+- [ ] animation by using [animateplus](https://github.com/bendc/animateplus)
 
 ## Build Setup
 
