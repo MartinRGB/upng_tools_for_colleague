@@ -9,7 +9,7 @@ var pngs = [];
 var curr = -1;
 var cnum = 256;	// quality
 var cnv, ctx;
-var main, list, totl, fopn,lbottom,lmiddle;
+var main, list, totl, fopn,lbottom,lmiddle,dragarea;
 var viw = 0, vih = 720;
 var limitedvih = 720,limitedviw = 720 ;
 var ioff = {x:0, y:0}, mouse=null;
@@ -55,8 +55,6 @@ function addPNG(buff, name)
         lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
     }
 }
-
-
 
 
 
@@ -174,6 +172,9 @@ function moveCurr(curr)
 function update()
 {
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
+    if(curr == -1){
+        list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><div id=\"drag-placeholder\" class=\"drag-placeholder\"></div><!-- <span>Drag PNG files here!</span> --></div></div>"
+    }
     var tos = 0, tns = 0;
 
     // Left Value Update
@@ -196,7 +197,7 @@ function update()
         //toBlock("➜",2)
         cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
         + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span></div></div>");
-        //if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
+        if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
         li.innerHTML = cnt;
         var btncontainer = document.createElement("div");
         btncontainer.id="btn-container";
@@ -221,11 +222,9 @@ function update()
     var ph = Math.floor(limitedvih*dpr);
         
     cnv.width = pw;  cnv.height = ph;
-    //(16/getDPR())
     // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
     var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
     cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
-
     // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
     
 
@@ -256,7 +255,41 @@ function update()
 }
 
 
-function itemClick(e) {  var ind=e.currentTarget._indx;  setCurr(ind);  var p=pngs[ind];  if(e.target.tagName=="BUTTON") save(p.ndata, p.name);   
+function itemClick(e) {  
+
+    var index = e.currentTarget._indx; 
+    if(e.target.innerHTML != '✖'){
+        setCurr(index);  
+        var p=pngs[index];  
+        if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
+    }
+    else{
+
+        pngs.splice(index, 1);
+
+        //删除除最后一个
+        if(index <= pngs.length-1 && index >= 0){
+            setCurr(index);
+        }
+        else{
+            //完全清空
+            if(pngs.length == 0){
+                setCurr(-1)
+                if(lbottom.offsetHeight == 203+1){
+                    lbottom.setAttribute("style", "height:"+(161)+"px;");
+                    lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
+                }
+                totl.innerHTML = "";
+
+            }
+            //删除最后一个
+            else{
+                setCurr(index-1)
+            }
+        }
+
+         
+    }
 }
 
 function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
@@ -270,7 +303,6 @@ const PageServices = {
         //loadURL("grid.png");  loadURL("bunny.png");
 
         hasAdded = false;
-
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -290,14 +322,13 @@ const PageServices = {
         
         var dc = document.body;
         
-        dc.addEventListener("dragover", cancel);
-        dc.addEventListener("dragenter", cancel);//highlight);
-        dc.addEventListener("dragleave", cancel);//unhighlight);
+        dc.addEventListener("dragover", highlight); //cancel
+        dc.addEventListener("dragenter", highlight);//cancel);
+        dc.addEventListener("dragleave", unhighlight);//cancel);
         dc.addEventListener("drop", onFileDrop);
         
         window.addEventListener("resize", resize);
         resize();
-        //setTimeout(function() { document.getElementById("bunny").setAttribute("style", "transform: translate(0, 220px)"); }, 1000);
     },
 
     showOpenDialog:function()	// show open dialog
@@ -367,12 +398,9 @@ const PageServices = {
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
 function onMM(e) {  
     ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
-
     moveCurr(curr);  
-
 }
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
-
 
 
 function onFileDrop(e) {  cancel(e);
@@ -395,8 +423,21 @@ function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighl
         console.log('loaded');
     });
 }
-function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
-function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
+
+// function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
+// function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
+function highlight  (e) {cancel(e); 
+    if(document.getElementById("drag-area") != null){
+        document.getElementById("drag-area").style.border = "5px dashed #c6c8d1";
+        document.getElementById("drag-placeholder").style.transform = "scale(1.13)";
+    }
+}
+function unhighlight(e) {cancel(e); 
+    if(document.getElementById("drag-area") != null){
+        document.getElementById("drag-area").style.border = "5px dashed #ebecf1";
+        document.getElementById("drag-placeholder").style.transform = "scale(1)";
+    }
+}
 function resize(e) {  
     //Change to fixed value
     // vih = window.innerHeight-(250)-4;

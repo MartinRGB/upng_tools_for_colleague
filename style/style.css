@@ -83,7 +83,13 @@
 		border: 5px dashed #EBECF1;
 		border-radius: 0.6em;
 		cursor: pointer;
+		transition:all 0.3s;
 	}
+
+	/* #drag-container:hover #drag-area{
+		background:#3f403b;
+	} */
+
 
 	.drag-placeholder{
 		background-image:  url("../asset/drag-placeholder.png");
@@ -92,6 +98,7 @@
 		height: 120px;
 		display: inline-block;
 		margin: auto;
+		transition:all 0.2s;
 	}
 
 	#l-bottom{
