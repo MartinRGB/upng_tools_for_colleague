@@ -42,6 +42,7 @@ function loadURL(path, resp)
 }
 function urlLoaded(e) {  addPNG(e.target.response, e.target._fname);  }
 
+
 function addPNG(buff, name)
 {
     var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], ubuff=new Uint8Array(buff);
@@ -50,6 +51,27 @@ function addPNG(buff, name)
     var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
     var nc = pngs.length;  pngs.push(npng);  recompute(nc);  setCurr(nc);
 
+
+    //Add list Animation 
+    // var addArray = document.querySelectorAll("#list #image-li");
+    // var addPNGStartIndex = 0;
+
+    // function myLoop () {           //  create a loop function
+    //    setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+
+    //       addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px);");
+    //       addPNGStartIndex++;                     //  increment the counter
+    //       if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
+    //          myLoop();             //  ..  again which will trigger another 
+    //       }                        //  ..  setTimeout()
+    //    }, 50)
+    // }
+    
+    // myLoop();    
+
+
+
+    // Bottom list Aniamtion
     if(lbottom.offsetHeight != 203+1){
         lbottom.setAttribute("style", "height:"+(203)+"px;");
         lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
@@ -68,107 +90,6 @@ function recompute(i) {
     p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
 }
 
-function updateValue(){
-    var tos = 0, tns = 0;
-
-    // Left Value Update
-    for(var i=0; i<=pngs.length; i++)
-    {
-        var p = pngs[i];
-        
-        //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
-        
-        var iname, os, ns, cont, pw=0, ph=0;
-        if(i<pngs.length) {  
-            iname=p.name;  
-            os = p.odata.byteLength;  
-            ns = p.ndata.byteLength;  
-            tos+=os;  
-            tns+=ns;  
-            cont=list;  
-            pw=p.width;  
-            ph=p.height;
-            // li.addEventListener("click", itemClick, false);    
-        }
-        else             
-        {  
-            iname="Total:";  
-            os = tos;  
-            ns = tns;  
-            cont = totl;  
-        }
-        
-        var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
-
-        document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
-        document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
-
-    }
-
-    // Canvas Size
-    var dpr = getDPR();
-    var iw = window.innerWidth-2;
-
-    //Changed to fixed Value;
-    // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
-    // var ph = 720; //Math.floor(limitedvih*dpr)
-    var pw = Math.floor(limitedviw*dpr);
-    var ph = Math.floor(limitedvih*dpr);
-        
-
-    // Update Current Image
-    if(curr!=-1) {
-        var p = pngs[curr], l = p.width*p.height*4;					
-        var imgd = ctx.createImageData(p.width, p.height);
-        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
-        ctx.clearRect(0,0,cnv.width,cnv.height);
-        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        
-        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
-        
-        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
-    }
-    
-
-}
-
-function moveCurr(curr)
-{
-
-    
-    // Canvas Size
-    var dpr = getDPR();
-    var iw = window.innerWidth-2;
-    var pw = Math.floor(limitedviw*dpr);
-    var ph = Math.floor(limitedvih*dpr);
-    // cnv.width = pw;  
-    // cnv.height = ph;
-
-    // Update Current Image When Compressing
-
-
-    if(curr!=-1) {
-        var p = pngs[curr], l = p.width*p.height*4;		
-        var imgd = ctx.createImageData(p.width, p.height);
-        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
-        ctx.clearRect(0,0,cnv.width,cnv.height);
-        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        
-        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
-        
-        //center
-        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
-    }
-
-}
-
-
 function update()
 {
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
@@ -180,15 +101,18 @@ function update()
     // Left Value Update
     for(var i=0; i<=pngs.length; i++)
     {
+
         var p = pngs[i];
-        var li = document.createElement("p");  li.setAttribute("class", "item"+(i==curr?" active":"")); li._indx=i;
-        
+        var li = document.createElement("p");  
+        li.setAttribute("class", "item"+(i==curr?" active":"")); 
+        li._indx=i;
+        li.id='image-li'
+
         
         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
         
         var iname, os, ns, cont, pw=0, ph=0;
-        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;
-                             li.addEventListener("click", itemClick, false);    }
+        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);}
         else              {  iname="Total:";  os = tos;  ns = tns;  cont = totl;  }
         
         var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
@@ -204,9 +128,16 @@ function update()
         var btn = document.createElement("button");   btn.innerHTML = "<span class=\"icon-download---FontAwesome\"></span><span style=\"margin-left: 5px;font-size: 16px;font-weight: bold;\"> SAVE</span>";  
         if(i<pngs.length) li.appendChild(btncontainer);
         btncontainer.appendChild(btn);
+
+
         
         if(pngs.length!=0)  cont.appendChild(li);
+
+
     }
+
+
+
 
 
 
@@ -251,9 +182,38 @@ function update()
     else{
         hasAdded = false;
     }
-    // 
-}
 
+    return new Promise((resolve, reject) => {
+        console.log('updated');
+
+        //var addArray = document.getElementById('list').children;
+        // for(var i=0; i<=pngs.length; i++){
+
+        //     setTimeout(function() {
+                
+        //         addArray[i].setAttribute("class", "item item-added"+(i==curr?" active":"")); 
+                
+        //     }, 50);
+        // }
+
+        // var addPNGStartIndex = 0;
+        
+        // function myLoop () {           //  create a loop function
+        //     setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+
+        //         addArray[addPNGStartIndex].setAttribute("class", "item item-added"+(i==curr?" active":""));
+        //         addPNGStartIndex++;                     //  increment the counter
+        //         if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
+        //             myLoop();             //  ..  again which will trigger another 
+        //         }                        //  ..  setTimeout()
+        //     }, 50)
+        // }
+        
+        // myLoop();    
+    });
+
+  
+}
 
 function itemClick(e) {  
 
@@ -265,28 +225,65 @@ function itemClick(e) {
     }
     else{
 
-        pngs.splice(index, 1);
 
-        //删除除最后一个
-        if(index <= pngs.length-1 && index >= 0){
-            setCurr(index);
-        }
-        else{
-            //完全清空
-            if(pngs.length == 0){
-                setCurr(-1)
-                if(lbottom.offsetHeight == 203+1){
-                    lbottom.setAttribute("style", "height:"+(161)+"px;");
-                    lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
+        // Delete Animation
+        var addArray = document.querySelectorAll("#list #image-li");
+        hasDeleted = true;
+
+
+        for(var i=0; i<pngs.length; i++){
+            // Delete 选中项
+            // 移除 clickListener
+            addArray[i].removeEventListener("click", itemClick, false);
+            if(i == index){
+                // 最后一项目
+                if(index == pngs.length -1){
+                    addArray[i].setAttribute("style", "transform: scale(0.6) translateY(0px);opacity:0 !important;");
                 }
-                totl.innerHTML = "";
-
+                // 其余项目
+                else{
+                    addArray[i].setAttribute("style", "transform: scale(0.6) translateY(60px);opacity:0 !important;");
+                }
             }
-            //删除最后一个
-            else{
-                setCurr(index-1)
+            // Delete 选中项底部项
+            else if(i > index){
+
+                if(i - index < Math.ceil(list.offsetHeight/80)){
+                    addArray[i].setAttribute("style", "transform:scale(1) translateY(-90px);");
+                }
             }
         }
+
+        setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+                pngs.splice(index, 1);
+            
+                //删除除最后一个
+                if(index <= pngs.length-1 && index >= 0){
+                    setCurr(index);
+                }
+                else{
+                    //完全清空
+                    if(pngs.length == 0){
+                        setCurr(-1)
+                        if(lbottom.offsetHeight == 203+1){
+                            lbottom.setAttribute("style", "height:"+(161)+"px;");
+                            lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
+                        }
+                        totl.innerHTML = "";
+        
+                    }
+                    //删除最后一个
+                    else{
+                        setCurr(index-1)
+                    }
+                }
+                
+                // 添加 clickListener
+                for(var i=0; i<pngs.length; i++){
+                    addArray[i].addEventListener("click", itemClick, false);
+                }
+         }, 500)
+
 
          
     }
@@ -329,6 +326,7 @@ const PageServices = {
         
         window.addEventListener("resize", resize);
         resize();
+        update();
     },
 
     showOpenDialog:function()	// show open dialog
@@ -450,13 +448,145 @@ function resize(e) {
     viw = window.innerWidth - 480;
     limitedvih = Math.max(720,vih)
     limitedviw = Math.max(720,viw)
-    update();
+
+    updateResize()
+    // had moved outside
+    //update();
 }
 
 function getDPR() {  return window["devicePixelRatio"] || 1;  }
 function cancel(e) { e.stopPropagation(); e.preventDefault(); }
 
 
+// Some Optimize Functions
+function updateResize(){
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+        
+    cnv.width = pw;  cnv.height = ph;
+    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
+    cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
+    
+
+
+    
+    // Update Current Image When Compressing
+    if(hasAdded){
+        var p = pngs[curr], l = p.width*p.height*4;					
+        var imgd = ctx.createImageData(p.width, p.height);
+        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+    }
+    else{
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+    }
+    
+}
+
+function updateValue(){
+    var tos = 0, tns = 0;
+
+    // Left Value Update
+    for(var i=0; i<=pngs.length; i++)
+    {
+        var p = pngs[i];
+        
+        //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
+        
+        var iname, os, ns, cont, pw=0, ph=0;
+        if(i<pngs.length) {  
+            iname=p.name;  
+            os = p.odata.byteLength;  
+            ns = p.ndata.byteLength;  
+            tos+=os;  
+            tns+=ns;  
+            cont=list;  
+            pw=p.width;  
+            ph=p.height;  
+        }
+        else             
+        {  
+            iname="Total:";  
+            os = tos;  
+            ns = tns;  
+            cont = totl;  
+        }
+        
+        var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
+
+        document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
+        document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
+
+    }
+
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+
+    //Changed to fixed Value;
+    // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
+    // var ph = 720; //Math.floor(limitedvih*dpr)
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+        
+
+    // Update Current Image
+    if(curr!=-1) {
+        var p = pngs[curr], l = p.width*p.height*4;					
+        var imgd = ctx.createImageData(p.width, p.height);
+        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+    }
+    
+
+}
+
+function moveCurr(curr)
+{
+
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+
+
+    if(curr!=-1) {
+        var p = pngs[curr], l = p.width*p.height*4;		
+        var imgd = ctx.createImageData(p.width, p.height);
+        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+        //center
+        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+    }
+
+}
 
 
 
