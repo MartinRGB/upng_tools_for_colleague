@@ -10,20 +10,20 @@ const url = require('url')
 
 const { Menu } = require('electron')
 const template = [
-  // {
-  //   label: 'Edit',
-  //   submenu: [
-  //     {role: 'undo'},
-  //     {role: 'redo'},
-  //     {type: 'separator'},
-  //     {role: 'cut'},
-  //     {role: 'copy'},
-  //     {role: 'paste'},
-  //     {role: 'pasteandmatchstyle'},
-  //     {role: 'delete'},
-  //     {role: 'selectall'}
-  //   ]
-  // },
+  {
+    label: 'Edit',
+    submenu: [
+      {role: 'undo'},
+      {role: 'redo'},
+      {type: 'separator'},
+      {role: 'cut'},
+      {role: 'copy'},
+      {role: 'paste'},
+      {role: 'pasteandmatchstyle'},
+      {role: 'delete'},
+      {role: 'selectall'}
+    ]
+  },
   {
     label: 'View',
     submenu: [
@@ -98,7 +98,7 @@ function addMenu(){
     // )
   
     // Window menu
-    template[2].submenu = [
+    template[3].submenu = [
       {role: 'close'},
       {role: 'minimize'},
       {role: 'zoom'},

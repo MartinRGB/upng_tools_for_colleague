@@ -3,7 +3,73 @@
 const UPNG = require('./js/UPNG.js')
 const UZIP = require('./js/UZIP.js')
 var Promise = require('promise');
+var Parallel = require('paralleljs')
 
+// ############# WORKER EXAMPLE #############
+
+// Classic
+// var worker = new Worker('./js/worker.js');
+
+// console.log('MAIN TASK: ', 'running');
+
+
+// //发送数据
+// worker.postMessage('Hello Worker, I am main.js');
+
+// // 接受数据
+// worker.addEventListener('message', function (e) {
+    
+//     console.log('MAIN RECEIVE: ',e.data);
+
+
+//     return new Promise((resolve, reject) => {
+//         worker.terminate();
+//         console.log('WORKER TERMINATED');
+//     });
+    
+// });
+
+
+// worker.postMessage(addSummary(2,3));
+
+// function addSummary(a,b){
+//     return (a+b).toString();
+// }
+
+
+// Tiny Worker
+//console.log('MAIN PROCESS: ', 'running');
+
+// var Worker = require("tiny-worker");
+// var worker = new Worker("./js/worker.js");
+
+// var worker = new Worker(function () {
+//     console.log('WORKER TASK: ', 'running');
+//     self.onmessage = function (e) {
+//         console.log('WORKER RECEIVE: ', e.data);
+
+//         return new Promise((resolve, reject) => {
+//             // 发送数据事件
+//             postMessage('Hello main, I am worker.js');
+//             console.log('WORKER Promise Worked');
+//         });
+//     };
+// });
+
+ 
+// worker.onmessage = function (e) {
+//     console.log('MAIN RECEIVE: ',e.data);
+
+//     return new Promise((resolve, reject) => {
+//         worker.terminate();
+//         console.log('WORKER TERMINATED');
+//     });
+// };
+ 
+// worker.postMessage("Hello Worker, I am main.js!");
+
+
+// ############################################
 
 var pngs = [];
 var curr = -1;
@@ -16,6 +82,7 @@ var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
 var qualValue = 500;
 var shouldListAnim = false;
+var isHighlighting = false;
 var prevliLength = 0;
 var nowliLength = 0;
 
@@ -59,15 +126,10 @@ function addPNG(buff, name)
     setCurr(nc);
 
 
-    //Add list Animation 
-
-    // Bottom list Aniamtion
     if(lbottom.offsetHeight != 203+1){
         lbottom.setAttribute("style", "height:"+(203)+"px;");
         lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
     }
-
-
 
 }
 
@@ -95,7 +157,9 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
                 function myLoop () {           //  create a loop function
                     setTimeout(function () {    //  call a 3s setTimeout when the loop is called
 
-                        addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
+                        if(addArray[addPNGStartIndex] != null){
+                            addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
+                        }
                         addPNGStartIndex++;                     //  increment the counter
                         if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
                             myLoop();             //  ..  again which will trigger another 
@@ -103,9 +167,8 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
                     }, 50)
 
                 }
-                
-                myLoop();    
 
+                myLoop();    
 
                 // 等所有动画执行后，开启切换
                 setTimeout(function () { 
@@ -118,7 +181,68 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
 
 function recompute(i) {
     var p = pngs[i];
+
+    // var worker = new Worker(function () {
+
+    //     console.log('WORKER TASK: ', 'running');
+    //     self.onmessage = function (e) {
+            
+    //         var eImg;
+    //         var eNum;
+    //         var returndata;
+          
+    //         var myFirstPromise = new Promise(function(resolve, reject){
+          
+          
+    //           eImg = e.data.img;
+    //           eNum = e.data.num;
+    //           resolve()
+          
+    //         }).then(function(){
+              
+    //           console.log('WORKER 1st Promise Worked');
+    //           var mySecondPromise = new Promise(function(resolve, reject){
+          
+    //             returndata = UPNG.encode([eImg.orgba.buffer], eImg.width, eImg.height, eNum);
+    //             resolve()
+    //           }).then(function(){
+    //             console.log('WORKER 2nd Promise Worked');
+    //             console.log(returndata);
+    //             postMessage('Hello main, I am worker.js');
+    //           });
+    //         });
+          
+    //     }
+    // });
+   
+
+     
+    // worker.postMessage(
+    //     {
+    //         img:p,
+    //         num:cnum
+    //     }
+    // );
+
+    
+    
+    // worker.onmessage = function (e) {
+    //     console.log('MAIN RECEIVE: ',e.data);
+        
+    
+    //     return new Promise((resolve, reject) => {
+    //         worker.terminate();
+    //         console.log('WORKER TERMINATED');
+    //     });
+    // };
+
+
+    //var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
+
+    // console.log(para.data); // prints [1, 2, 3, 4, 5]
+
     p.ndata = UPNG.encode([p.orgba.buffer], p.width, p.height, cnum);
+    // console.log(p.ndata);
     if(p.ndata.byteLength > p.odata.byteLength) p.ndata = p.odata;
     var img  = UPNG.decode(p.ndata);
     p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
@@ -128,7 +252,9 @@ function update()
 {
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
     if(curr == -1){
-        list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><div id=\"drag-placeholder\" class=\"drag-placeholder\"></div><!-- <span>Drag PNG files here!</span> --></div></div>"
+        // list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><div id=\"drag-placeholder\" class=\"drag-placeholder\"></div><!-- <span>Drag PNG files here!</span> --></div></div>"
+
+        list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><img src=\"./asset/art.svg\" class=\"empty-img\"><span class=\"empty-text\">Please add PNG</span></div><!-- <span>Drag PNG files here!</span> --></div></div>"
     }
     var tos = 0, tns = 0;
 
@@ -139,6 +265,7 @@ function update()
         var p = pngs[i];
         var li = document.createElement("p");  
         li.setAttribute("class", "item"+(i==curr?" active":"")); 
+
         li._indx=i;
         li.id='image-li'
 
@@ -235,40 +362,6 @@ function update()
 
 
         hasAdded = true;
-
-
-        // if(shouldListAnim){
-
-        //     return new Promise((resolve, reject) => {
-        //         console.log('updated');
-
-        //         var addArray = document.querySelectorAll("#list #image-li");
-
-
-        //         // 从上一次动画完成处开始动画，到最大长度
-        //         var addPNGStartIndex = 0 + prevliLength;
-                
-        //         function myLoop () {           //  create a loop function
-        //             setTimeout(function () {    //  call a 3s setTimeout when the loop is called
-
-        //                 addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
-        //                 addPNGStartIndex++;                     //  increment the counter
-        //                 if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
-        //                     myLoop();             //  ..  again which will trigger another 
-        //                 }                        //  ..  setTimeout()
-        //             }, 50)
-
-        //         }
-                
-        //         myLoop();    
-
-
-        //         // 等所有动画执行后，开启切换
-        //         setTimeout(function () { 
-        //             prevliLength = nowliLength;
-        //         }, 50*(nowliLength - prevliLength));
-        //     });
-        // }
         
     }
     else{
@@ -364,6 +457,8 @@ function itemClick(e) {
 function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
 function toBlock(txt, w) {  var st = w ? " style=\"width:"+w+"em;\"":"";  return "<span"+st+">"+txt+"</span>";  }
 
+
+
 const PageServices = {
 
 
@@ -375,6 +470,7 @@ const PageServices = {
         shouldListAnim = false;
         nowliLength = 0;
         prevliLength = 0;
+        isHighlighting = false;
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -405,6 +501,9 @@ const PageServices = {
             console.log('go');
             update();
         });
+
+
+
     },
 
     showOpenDialog:function()	// show open dialog
@@ -431,13 +530,56 @@ const PageServices = {
         }
     },
 
-    resetCurrent:function (){
-        document.getElementById('eRNG').value = 500;
-        if(hasAdded){
+    resetAll:function (){
+
+        
+        if(hasAdded && document.getElementById('eRNG').value != 500){
+
+
+            var myFirstPromise = new Promise(function(resolve, reject){
+                if(hasAdded){
+    
+                    document.getElementById('reset-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
+                    document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0.75);opacity: 1;")
+                    document.getElementById('reset-btn').setAttribute("style","cursor:progress;")
+    
+    
+                                            
+    
+                    setTimeout(function(){
+                        resolve()
+                    }, 50);
+                }
+    
+            });
             
-            cnum = Math.max(2, Math.round(510*500/1000));
-            for(var i=0; i<pngs.length; i++) recompute(i);
-            updateValue()
+            myFirstPromise.then(function(){
+                
+                var mySecondPromise = new Promise(function(resolve, reject){
+        
+
+                    cnum = Math.max(2, Math.round(510*500/1000));
+                    for(var i=0; i<pngs.length; i++) recompute(i);
+                    updateValue()
+                    resolve()
+                });
+    
+                mySecondPromise.then(function(){
+
+                    document.getElementById('eRNG').value = 500;
+
+                    setTimeout(function(){
+                        document.getElementById('reset-icon').setAttribute("style","transform: scale(1);opacity:1;")
+                        document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0);opacity: 0;")
+                        document.getElementById('reset-btn').setAttribute("style","")
+                    }, 250);
+
+                    resolve()
+    
+    
+                })
+    
+            });
         
         }
 
@@ -454,22 +596,59 @@ const PageServices = {
         // for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
         // save(UZIP.encode(obj).buffer, "compressed_images.zip");
 
-        if(qualValue>990) cnum=0;
-        else cnum = Math.max(2, Math.round(510*qualValue/1000));
-        for(var i=0; i<pngs.length; i++) recompute(i);
-        // Only recompute Curr Img
-        // recompute(curr)
-        // update();
-        updateValue()
 
-        return new Promise((resolve, reject) => {
-            console.log('compressed');
+        var myFirstPromise = new Promise(function(resolve, reject){
+            if(hasAdded){
+
+                document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
+                document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0.75);opacity: 1;")
+                document.getElementById('compress-btn').setAttribute("style","cursor:progress;")
+
+
+										
+
+                setTimeout(function(){
+                    resolve()
+                }, 50);
+            }
+
         });
+        
+        myFirstPromise.then(function(){
+            
+            var mySecondPromise = new Promise(function(resolve, reject){
+    
+                if(qualValue>990) cnum=0;
+                else cnum = Math.max(2, Math.round(510*qualValue/1000));
+                for(var i=0; i<pngs.length; i++) recompute(i);
+                // Only recompute Curr Img
+                // recompute(curr)
+                // update();
+    
+                updateValue()
+                resolve()
+            });
+
+            mySecondPromise.then(function(){
+                setTimeout(function(){
+                    document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
+                    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0);opacity: 0;")
+                    document.getElementById('compress-btn').setAttribute("style","")
+                    //document.getElementById('compress-text').innerHTML = "DOWNLOAD ALL"
+                }, 250);
+                resolve()
+
+
+            })
+
+        });
+
     }
 
 
 
 }
+
 
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
 function onMM(e) {  
@@ -483,6 +662,8 @@ function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  docum
 function onFileDrop(e) {  cancel(e);
     var fls = e.dataTransfer? e.dataTransfer.files : e.target.files;
     for(var i=0; i<fls.length; i++) {
+
+        console.log(fls[i].name)
         var f = fls[i];
         var r = new FileReader();
         r._file = f;
@@ -507,15 +688,39 @@ function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighl
 // function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
 // function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
 function highlight  (e) {cancel(e); 
-    if(document.getElementById("drag-area") != null){
-        document.getElementById("drag-area").style.border = "5px dashed #c6c8d1";
-        document.getElementById("drag-placeholder").style.transform = "scale(1.13)";
+
+    if(!isHighlighting){
+        console.log('highlighing')
+        document.getElementById("window-area").setAttribute("style","opacity:1;z-index:1000;");
+        document.getElementById("window-border").style.border = "3px dashed #848484";
+        document.getElementById("window-scale-container").style.transform = "scale(1.13)";
+        document.getElementById("window-text").style.color = "#909090";
+        document.getElementById("canvas1-bezier").setAttribute("style","fill:#8c8c8c;");
+        isHighlighting = true;
     }
+    
+
+
 }
 function unhighlight(e) {cancel(e); 
-    if(document.getElementById("drag-area") != null){
-        document.getElementById("drag-area").style.border = "5px dashed #ebecf1";
-        document.getElementById("drag-placeholder").style.transform = "scale(1)";
+    // document.getElementById("window-border").style.opacity = "0";
+    if(isHighlighting){
+        console.log('unhighlighing')
+        document.getElementById("window-area").setAttribute("style","opacity:0;");
+        document.getElementById("window-border").style.border = "3px dashed #c3c3c3";
+        document.getElementById("window-scale-container").style.transform = "scale(1)";
+        document.getElementById("window-text").style.color = "#b5b5b5";
+        document.getElementById("canvas1-bezier").setAttribute("style","fill:#c5c5c5;");
+        isHighlighting = false;
+        
+        
+    
+        setTimeout(function () {    //  call a 3s setTim                    //  ..  setTimeout()
+            console.log('checking')
+            if(!isHighlighting){
+                document.getElementById("window-area").setAttribute("style","opacity:0;z-index:-100");
+            }
+        }, 300)
     }
 }
 function resize(e) {  
@@ -638,6 +843,7 @@ function updateValue(){
         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
     }
+
     
 
 }

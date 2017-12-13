@@ -4,8 +4,12 @@ var UPNG = {};
 
 // Make available for import by `require()`
 var pako;
-if (typeof module == "object") {module.exports = UPNG;}  else {window.UPNG = UPNG;}
-if (typeof require == "function") {pako = require("pako");}  else {pako = window.pako;}
+if (typeof module == "object") {module.exports = UPNG;}  else {
+	window.UPNG = UPNG;
+}
+if (typeof require == "function") {pako = require("pako");}  else {
+	pako = window.pako;
+}
 function log() { if (typeof process=="undefined" || process.env.NODE_ENV=="development") console.log.apply(console, arguments);  }
 (function(UPNG, pako){
 
