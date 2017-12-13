@@ -15,6 +15,9 @@ var limitedvih = 720,limitedviw = 720 ;
 var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
 var qualValue = 500;
+var shouldListAnim = false;
+var prevliLength = 0;
+var nowliLength = 0;
 
 
 function save(buff, path)
@@ -49,38 +52,69 @@ function addPNG(buff, name)
     for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
     var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
     var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
-    var nc = pngs.length;  pngs.push(npng);  recompute(nc);  setCurr(nc);
+    var nc = pngs.length;  pngs.push(npng);  recompute(nc);  
+
+    //开启列表动画
+    shouldListAnim = true;
+    setCurr(nc);
 
 
     //Add list Animation 
-    // var addArray = document.querySelectorAll("#list #image-li");
-    // var addPNGStartIndex = 0;
-
-    // function myLoop () {           //  create a loop function
-    //    setTimeout(function () {    //  call a 3s setTimeout when the loop is called
-
-    //       addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px);");
-    //       addPNGStartIndex++;                     //  increment the counter
-    //       if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
-    //          myLoop();             //  ..  again which will trigger another 
-    //       }                        //  ..  setTimeout()
-    //    }, 50)
-    // }
-    
-    // myLoop();    
-
-
 
     // Bottom list Aniamtion
     if(lbottom.offsetHeight != 203+1){
         lbottom.setAttribute("style", "height:"+(203)+"px;");
         lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
     }
+
+
+
 }
 
 
 
-function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};  update();  }
+function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};  
+
+    update()
+
+    // Add List Anim
+    return new Promise((resolve, reject) => {
+        
+
+        if(shouldListAnim && hasAdded){
+            
+            return new Promise((resolve, reject) => {
+                console.log('updated');
+
+                var addArray = document.querySelectorAll("#list #image-li");
+
+
+                // 从上一次动画完成处开始动画，到最大长度
+                var addPNGStartIndex = 0 + prevliLength;
+                
+                function myLoop () {           //  create a loop function
+                    setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+
+                        addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
+                        addPNGStartIndex++;                     //  increment the counter
+                        if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
+                            myLoop();             //  ..  again which will trigger another 
+                        }                        //  ..  setTimeout()
+                    }, 50)
+
+                }
+                
+                myLoop();    
+
+
+                // 等所有动画执行后，开启切换
+                setTimeout(function () { 
+                    prevliLength = nowliLength;
+                }, 50*(nowliLength - prevliLength));
+            });
+        }
+    });  
+}
 
 function recompute(i) {
     var p = pngs[i];
@@ -112,7 +146,25 @@ function update()
         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
         
         var iname, os, ns, cont, pw=0, ph=0;
-        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);}
+        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);
+
+            //做列表动画
+            if(shouldListAnim){
+                //如果不是新添加的
+                if(i<prevliLength){
+                    li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
+                }
+                //如果是新添加的
+                else{
+                    li.setAttribute("style","opacity: 0;transform: scale(0.6) translateY(60px);");
+                }
+                
+            }
+            //不做列表动画
+            else{
+                li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
+            }
+        }
         else              {  iname="Total:";  os = tos;  ns = tns;  cont = totl;  }
         
         var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
@@ -176,47 +228,64 @@ function update()
         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
     }
+
+
+
     if(curr!=-1){
+
+
         hasAdded = true;
+
+
+        // if(shouldListAnim){
+
+        //     return new Promise((resolve, reject) => {
+        //         console.log('updated');
+
+        //         var addArray = document.querySelectorAll("#list #image-li");
+
+
+        //         // 从上一次动画完成处开始动画，到最大长度
+        //         var addPNGStartIndex = 0 + prevliLength;
+                
+        //         function myLoop () {           //  create a loop function
+        //             setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+
+        //                 addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
+        //                 addPNGStartIndex++;                     //  increment the counter
+        //                 if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
+        //                     myLoop();             //  ..  again which will trigger another 
+        //                 }                        //  ..  setTimeout()
+        //             }, 50)
+
+        //         }
+                
+        //         myLoop();    
+
+
+        //         // 等所有动画执行后，开启切换
+        //         setTimeout(function () { 
+        //             prevliLength = nowliLength;
+        //         }, 50*(nowliLength - prevliLength));
+        //     });
+        // }
+        
     }
     else{
+
         hasAdded = false;
     }
 
-    return new Promise((resolve, reject) => {
-        console.log('updated');
 
-        //var addArray = document.getElementById('list').children;
-        // for(var i=0; i<=pngs.length; i++){
-
-        //     setTimeout(function() {
-                
-        //         addArray[i].setAttribute("class", "item item-added"+(i==curr?" active":"")); 
-                
-        //     }, 50);
-        // }
-
-        // var addPNGStartIndex = 0;
-        
-        // function myLoop () {           //  create a loop function
-        //     setTimeout(function () {    //  call a 3s setTimeout when the loop is called
-
-        //         addArray[addPNGStartIndex].setAttribute("class", "item item-added"+(i==curr?" active":""));
-        //         addPNGStartIndex++;                     //  increment the counter
-        //         if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
-        //             myLoop();             //  ..  again which will trigger another 
-        //         }                        //  ..  setTimeout()
-        //     }, 50)
-        // }
-        
-        // myLoop();    
-    });
 
   
 }
 
 function itemClick(e) {  
 
+
+    //不做列表添加动画
+    shouldListAnim = false;
     var index = e.currentTarget._indx; 
     if(e.target.innerHTML != '✖'){
         setCurr(index);  
@@ -228,7 +297,6 @@ function itemClick(e) {
 
         // Delete Animation
         var addArray = document.querySelectorAll("#list #image-li");
-        hasDeleted = true;
 
 
         for(var i=0; i<pngs.length; i++){
@@ -256,6 +324,10 @@ function itemClick(e) {
 
         setTimeout(function () {    //  call a 3s setTimeout when the loop is called
                 pngs.splice(index, 1);
+
+                // 删除后，更新 liLength 4 list Anim
+                nowliLength -=1;
+                prevliLength -=1;
             
                 //删除除最后一个
                 if(index <= pngs.length-1 && index >= 0){
@@ -300,6 +372,9 @@ const PageServices = {
         //loadURL("grid.png");  loadURL("bunny.png");
 
         hasAdded = false;
+        shouldListAnim = false;
+        nowliLength = 0;
+        prevliLength = 0;
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -326,7 +401,10 @@ const PageServices = {
         
         window.addEventListener("resize", resize);
         resize();
-        update();
+        return new Promise((resolve, reject) => {
+            console.log('go');
+            update();
+        });
     },
 
     showOpenDialog:function()	// show open dialog
@@ -397,6 +475,7 @@ function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.ad
 function onMM(e) {  
     ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
     moveCurr(curr);  
+    
 }
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
 
@@ -410,6 +489,8 @@ function onFileDrop(e) {  cancel(e);
         r.onload = dropLoaded;
         r.readAsArrayBuffer(f);
     }
+    // 一旦上传文件，立即更新列表数据
+    nowliLength += fls.length;
 }			
 function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighlight(e); 
     return new Promise((resolve, reject) => {
@@ -418,6 +499,7 @@ function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighl
         //   resolve(someValue); // fulfilled
         // ?或
         //   reject("failure reason"); // rejected
+
         console.log('loaded');
     });
 }
