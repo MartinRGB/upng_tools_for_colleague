@@ -2,9 +2,9 @@
 
 // ############ TODO ############
 // DeleteAnimation 优化
-// ADDPNG 优化之选中最后一个
-// Download after Compress
+// Download -> Compress
 // ADDPNG 读取优化
+// ADDPNG 选中顺序
 // ADDPNG 加载顺序
 // ##############################
 
