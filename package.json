@@ -18,9 +18,6 @@
   },
   "dependencies": {
     "pako": "^1.0.6",
-    "paralleljs": "^0.2.1",
-    "promise": "^8.0.1",
-    "tiny-worker": "^2.1.1",
-    "webworker-threads": "^0.7.13"
+    "promise": "^8.0.1"
   }
 }

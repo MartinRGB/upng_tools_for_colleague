@@ -9,7 +9,6 @@
 const UPNG = require('./js/UPNG.js')
 const UZIP = require('./js/UZIP.js')
 var Promise = require('promise');
-var Parallel = require('paralleljs')
 
 var pngs = [];
 var curr = -1;
