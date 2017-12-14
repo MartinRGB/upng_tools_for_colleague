@@ -69,6 +69,10 @@ var Parallel = require('paralleljs')
 // worker.postMessage("Hello Worker, I am main.js!");
 
 
+// Parallel
+//var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
+//console.log(para.data); // prints [1, 2, 3, 4, 5]
+
 // ############################################
 
 var pngs = [];
@@ -85,6 +89,11 @@ var shouldListAnim = false;
 var isHighlighting = false;
 var prevliLength = 0;
 var nowliLength = 0;
+var windowEl;
+var transitionEvent;
+var dragCounter = 0;
+
+
 
 
 function save(buff, path)
@@ -119,17 +128,24 @@ function addPNG(buff, name)
     for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
     var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
     var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
-    var nc = pngs.length;  pngs.push(npng);  recompute(nc);  
+    var nc = pngs.length;  pngs.push(npng);  
 
-    //开启列表动画
-    shouldListAnim = true;
-    setCurr(nc);
+    // // ### SingleThread ###
+    // recompute(nc);  
 
+    // // 开启列表动画
+    // shouldListAnim = true;
+    // setCurr(nc);
 
-    if(lbottom.offsetHeight != 203+1){
-        lbottom.setAttribute("style", "height:"+(203)+"px;");
-        lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
-    }
+    // //开启底部动画
+    // if(lbottom.offsetHeight != 203+1){
+    //     lbottom.setAttribute("style", "height:"+(203)+"px;");
+    //     lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+    // }
+
+    // ### MultiThread ###
+    multiThreadRecompute(nc)
+
 
 }
 
@@ -137,11 +153,11 @@ function addPNG(buff, name)
 
 function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};  
 
+    
     update()
 
     // Add List Anim
     return new Promise((resolve, reject) => {
-        
 
         if(shouldListAnim && hasAdded){
             
@@ -179,73 +195,56 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
     });  
 }
 
+
+function multiThreadRecompute(i){
+    var p = pngs[i]
+    var worker = new Worker('./js/recompute-worker.js');
+    
+    // console.log('MAIN TASK: ', 'running');
+    
+    //发送数据
+    worker.postMessage({
+        img:p,
+        num:cnum
+    });
+    
+    // 接受数据
+    worker.addEventListener('message', function (e) {
+        
+        // console.log('MAIN RECEIVE: ',e.data);
+        // 一定要确保销毁
+        worker.terminate();
+    
+        return new Promise((resolve, reject) => {
+
+            p.ndata = e.data.pndata;
+            p.nrgba = e.data.pnrgba;
+            shouldListAnim = true;
+            setCurr(i);
+            // console.log('WORKER TERMINATED');
+            resolve()
+        }).then(function(){
+            //开启底部动画
+
+
+            if(lbottom.offsetHeight != 203+1){
+                lbottom.setAttribute("style", "height:"+(203)+"px;");
+                lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+            }
+        });
+        
+    });
+
+
+}
+
 function recompute(i) {
     var p = pngs[i];
-
-    // var worker = new Worker(function () {
-
-    //     console.log('WORKER TASK: ', 'running');
-    //     self.onmessage = function (e) {
-            
-    //         var eImg;
-    //         var eNum;
-    //         var returndata;
-          
-    //         var myFirstPromise = new Promise(function(resolve, reject){
-          
-          
-    //           eImg = e.data.img;
-    //           eNum = e.data.num;
-    //           resolve()
-          
-    //         }).then(function(){
-              
-    //           console.log('WORKER 1st Promise Worked');
-    //           var mySecondPromise = new Promise(function(resolve, reject){
-          
-    //             returndata = UPNG.encode([eImg.orgba.buffer], eImg.width, eImg.height, eNum);
-    //             resolve()
-    //           }).then(function(){
-    //             console.log('WORKER 2nd Promise Worked');
-    //             console.log(returndata);
-    //             postMessage('Hello main, I am worker.js');
-    //           });
-    //         });
-          
-    //     }
-    // });
-   
-
-     
-    // worker.postMessage(
-    //     {
-    //         img:p,
-    //         num:cnum
-    //     }
-    // );
-
-    
-    
-    // worker.onmessage = function (e) {
-    //     console.log('MAIN RECEIVE: ',e.data);
-        
-    
-    //     return new Promise((resolve, reject) => {
-    //         worker.terminate();
-    //         console.log('WORKER TERMINATED');
-    //     });
-    // };
-
-
-    //var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
-
-    // console.log(para.data); // prints [1, 2, 3, 4, 5]
-
     p.ndata = UPNG.encode([p.orgba.buffer], p.width, p.height, cnum);
-    // console.log(p.ndata);
     if(p.ndata.byteLength > p.odata.byteLength) p.ndata = p.odata;
     var img  = UPNG.decode(p.ndata);
     p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
+    console.log('recomputed')
 }
 
 function update()
@@ -490,15 +489,21 @@ const PageServices = {
         
         var dc = document.body;
         
-        dc.addEventListener("dragover", highlight); //cancel
+        windowEl = document.getElementById("window-area");
+        transitionEvent = whichTransitionEvent();
+
+        dc.addEventListener("dragover", cancel); //cancel
         dc.addEventListener("dragenter", highlight);//cancel);
         dc.addEventListener("dragleave", unhighlight);//cancel);
+        // dc.addEventListener("dragend", unhighlight);//cancel);
+        // dc.addEventListener("mouseout", unhighlight);//cancel);
         dc.addEventListener("drop", onFileDrop);
         
         window.addEventListener("resize", resize);
         resize();
         return new Promise((resolve, reject) => {
             console.log('go');
+            // ### not MultiThread
             update();
         });
 
@@ -671,9 +676,10 @@ function onFileDrop(e) {  cancel(e);
         r.readAsArrayBuffer(f);
     }
     // 一旦上传文件，立即更新列表数据
+    unhighlight(e);  
     nowliLength += fls.length;
 }			
-function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighlight(e); 
+function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name); 
     return new Promise((resolve, reject) => {
         // ?异步操作，最终调用:
         //
@@ -681,48 +687,73 @@ function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name);  unhighl
         // ?或
         //   reject("failure reason"); // rejected
 
+        
         console.log('loaded');
     });
+}
+
+
+function whichTransitionEvent(){
+    var t,
+        el = document.createElement("fakeelement");
+  
+    var transitions = {
+      "transition"      : "transitionend",
+      "OTransition"     : "oTransitionEnd",
+      "MozTransition"   : "transitionend",
+      "WebkitTransition": "webkitTransitionEnd"
+    }
+  
+    for (t in transitions){
+      if (el.style[t] !== undefined){
+        return transitions[t];
+      }
+    }
 }
 
 // function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
 // function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
 function highlight  (e) {cancel(e); 
 
-    if(!isHighlighting){
-        console.log('highlighing')
-        document.getElementById("window-area").setAttribute("style","opacity:1;z-index:1000;");
+        dragCounter++;
+        console.log(dragCounter)
+        //console.log(e.type)
+        document.getElementById("window-area").setAttribute("style","opacity:1;visibility:visible");
         document.getElementById("window-border").style.border = "3px dashed #848484";
         document.getElementById("window-scale-container").style.transform = "scale(1.13)";
         document.getElementById("window-text").style.color = "#909090";
         document.getElementById("canvas1-bezier").setAttribute("style","fill:#8c8c8c;");
-        isHighlighting = true;
-    }
-    
+        windowEl.addEventListener(transitionEvent, highlightAnimCallback);
+        
 
+    
+}
+function highlightAnimCallback(event) {
+    windowEl.removeEventListener(transitionEvent, highlightAnimCallback);
 
 }
+
+
 function unhighlight(e) {cancel(e); 
-    // document.getElementById("window-border").style.opacity = "0";
-    if(isHighlighting){
-        console.log('unhighlighing')
-        document.getElementById("window-area").setAttribute("style","opacity:0;");
-        document.getElementById("window-border").style.border = "3px dashed #c3c3c3";
-        document.getElementById("window-scale-container").style.transform = "scale(1)";
-        document.getElementById("window-text").style.color = "#b5b5b5";
-        document.getElementById("canvas1-bezier").setAttribute("style","fill:#c5c5c5;");
-        isHighlighting = false;
-        
-        
-    
-        setTimeout(function () {    //  call a 3s setTim                    //  ..  setTimeout()
-            console.log('checking')
-            if(!isHighlighting){
-                document.getElementById("window-area").setAttribute("style","opacity:0;z-index:-100");
-            }
-        }, 300)
-    }
+        dragCounter--;
+        console.log(dragCounter)
+        //onsole.log(e.type)
+        if (dragCounter == 0) { 
+            
+            document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
+            document.getElementById("window-border").style.border = "3px dashed #c3c3c3";
+            document.getElementById("window-scale-container").style.transform = "scale(1)";
+            document.getElementById("window-text").style.color = "#b5b5b5";
+            document.getElementById("canvas1-bezier").setAttribute("style","fill:#c5c5c5;");
+            windowEl.addEventListener(transitionEvent, unhighlightAnimCallback);
+        }
 }
+
+function unhighlightAnimCallback(event) {
+    windowEl.removeEventListener(transitionEvent, unhighlightAnimCallback);
+}
+
+
 function resize(e) {  
     //Change to fixed value
     // vih = window.innerHeight-(250)-4;
@@ -873,6 +904,8 @@ function moveCurr(curr)
         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
     }
+
+
 
 }
 
