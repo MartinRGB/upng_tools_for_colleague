@@ -3,7 +3,9 @@
 // ############ TODO ############
 // DeleteAnimation 优化
 // ADDPNG 优化之选中最后一个
-// ADDPNG Wait Animation
+// Download after Compress
+// ADDPNG 读取优化
+// ADDPNG 加载顺序
 // ##############################
 
 const UPNG = require('./js/UPNG.js')
@@ -27,7 +29,6 @@ var windowEl;
 var transitionEvent;
 var dragCounter = 0;
 var compressCounter = 0;
-
 
 
 function save(buff, path)
@@ -68,7 +69,7 @@ function setCurr(nc) {
         if(shouldListAnim && hasAdded){
             
             return new Promise((resolve, reject) => {
-                console.log('updated');
+                console.log('list animation');
 
                 var addArray = document.querySelectorAll("#list #image-li");
 
@@ -102,6 +103,7 @@ function setCurr(nc) {
                 setTimeout(function () { 
                     prevliLength = nowliLength;
                 }, 50*(nowliLength - prevliLength));
+
             });
         }
     });  
@@ -134,10 +136,9 @@ function multiThreadRecompute(i,func,callback){
             p.nrgba = e.data.pnrgba;
             shouldListAnim = true;
             resolve()
-            // 因为多线程，不一定哪个最先，这里要处理
+            // 因为多线程，不一定哪个最先，这里要处理,setCurr 选择错误之所在
             func(i);
             // console.log('WORKER TERMINATED');
-            //resolve()
         }).then(function(){
             compressCounter++;
 
@@ -150,7 +151,6 @@ function multiThreadRecompute(i,func,callback){
         });
         
     });
-
 
 }
 
@@ -176,7 +176,6 @@ function update()
         li._indx=i;
         li.id='image-li'
 
-        
         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
         
         var iname, os, ns, cont, pw=0, ph=0;
@@ -192,7 +191,6 @@ function update()
                 else{
                     li.setAttribute("style","opacity: 0;transform: scale(0.6) translateY(60px);");
                 }
-                
             }
             //不做列表动画
             else{
@@ -200,12 +198,10 @@ function update()
             }
         }
         else{  
-
             iname="Total:";  os = tos;  ns = tns;  cont = totl;  
         }
         
         var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
-        
         
         //toBlock("➜",2)
         cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
@@ -217,11 +213,8 @@ function update()
         var btn = document.createElement("button");   btn.innerHTML = "<span class=\"icon-download---FontAwesome\"></span><span style=\"margin-left: 5px;font-size: 16px;font-weight: bold;\"> SAVE</span>";  
         if(i<pngs.length) li.appendChild(btncontainer);
         btncontainer.appendChild(btn);
-
-
         
         if(pngs.length!=0)  cont.appendChild(li);
-
 
     }
 
@@ -241,8 +234,6 @@ function update()
     cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
     // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
     
-
-
     
     // Update Current Image When Compressing
     if(curr!=-1) {
@@ -260,22 +251,13 @@ function update()
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
     }
 
-
-
     if(curr!=-1){
-
-
         hasAdded = true;
-        
     }
     else{
-
         hasAdded = false;
     }
 
-
-
-  
 }
 
 function itemClick(e) {  
@@ -293,31 +275,91 @@ function itemClick(e) {
 }
 
 
+function multiThreadRead(buff,name){
+
+    var worker = new Worker('./js/read-worker.js');
+
+    //发送数据
+    worker.postMessage({
+        buff:buff,
+        name:name
+    });
+    
+    // 接受数据
+    worker.addEventListener('message', function (e) {
+        
+        // 一定要确保销毁
+        worker.terminate();
+    
+        return new Promise((resolve, reject) => {
+
+            // Add Code Here
+            var nc = pngs.length; 
+            // 排序错误问题所在 
+            pngs.push(e.data.png);  
+            
+            compressCounter = 0;
+            multiThreadRecompute(nc,setCurr,null)
+            
+            resolve()
+        })
+        
+    });
+
+}
+
+var canInitLoading = true;
+
 function addPNG(buff, name)
 {
-    var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], ubuff=new Uint8Array(buff);
-    for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
-    var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
-    var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
-    var nc = pngs.length;  pngs.push(npng);  
 
-    // // ### SingleThread ###
-    // recompute(nc);  
+    //排序错误了
+    //multiThreadRead(buff,name);
 
-    // // 开启列表动画
-    // shouldListAnim = true;
-    // setCurr(nc);
 
-    // //开启底部动画
-    // if(lbottom.offsetHeight != 203+1){
-    //     lbottom.setAttribute("style", "height:"+(203)+"px;");
-    //     lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
-    // }
+    if(canInitLoading){
+        document.getElementById('window-scale-container').setAttribute("style","transform:scale(0);opacity:0");
+        document.getElementById('window-loader').setAttribute("style","transform:translate(-50%,-50%) scale(0.25);opacity:1;");
+        canInitLoading = false;
+    }
+    
+    
 
-    // ### MultiThread ### 还可以进一步优化
-    compressCounter = 0;
-    multiThreadRecompute(nc,setCurr,null)
 
+    return new Promise((resolve, reject) => {
+        var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        var ubuff=new Uint8Array(buff);
+        for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
+        var img  = UPNG.decode(buff)
+        var rgba = UPNG.toRGBA8(img)[0];
+        var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
+        var nc = pngs.length;  
+        pngs.push(npng);  
+    
+        // // ### MultiThread ### 还可以进一步优化 选择错误了
+        compressCounter = prevliLength;
+        multiThreadRecompute(nc,setCurr,afterAdd)
+    });
+
+}
+
+function beforeAdd(i){
+
+}
+
+function afterAdd(){
+    document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
+    document.getElementById("window-border").style.border = "3px dashed #c3c3c3";
+    document.getElementById("window-scale-container").style.transform = "scale(1)";
+    document.getElementById("window-scale-container").style.opacity = "0";
+    document.getElementById("window-text").style.color = "#b5b5b5";
+    document.getElementById("canvas1-bezier").setAttribute("style","fill:#c5c5c5;");
+    canInitLoading = true;
+    return new Promise((resolve, reject) => {
+        document.getElementById('window-scale-container').setAttribute("style","transform:scale(1);opacity:0");
+        document.getElementById('window-loader').setAttribute("style","transform:translate(-50%,-50%) scale(0);opacity:0;");
+
+    });
 }
 
 
@@ -509,7 +551,7 @@ function resetedAllBefore(){
     cnum = 256;
     compressCounter = 0;
     document.getElementById('reset-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
-    document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0.75);opacity: 1;")
+    document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0.75);opacity: 1;")
     document.getElementById('reset-btn').setAttribute("style","cursor:progress;")
 
 }
@@ -520,7 +562,7 @@ function resetedAllAfter(){
     return new Promise((resolve, reject) => {
         setTimeout(function(){
             document.getElementById('reset-icon').setAttribute("style","transform: scale(1);opacity:1;")
-            document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0);opacity: 0;")
+            document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0);opacity: 0;")
             document.getElementById('reset-btn').setAttribute("style","")
             document.getElementById('eRNG').value = 500;
         }, 250);
@@ -535,7 +577,7 @@ function compressedAllBefore(){
     compressCounter = 0;
 
     document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
-    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0.75);opacity: 1;")
+    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0.75);opacity: 1;")
     document.getElementById('compress-btn').setAttribute("style","cursor:progress;")	
 }
 
@@ -544,7 +586,7 @@ function compressedAllAfter(){
     return new Promise((resolve, reject) => {
         setTimeout(function(){
             document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
-            document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0);opacity: 0;")
+            document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0);opacity: 0;")
             document.getElementById('compress-btn').setAttribute("style","")
         }, 250);
     });
@@ -570,7 +612,8 @@ function onFileDrop(e) {  cancel(e);
         r.readAsArrayBuffer(f);
     }
     // 一旦上传文件，立即更新列表数据
-    unhighlight(e);  
+    // unhighlight(e);  
+
     nowliLength += fls.length;
 }			
 function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name); 
@@ -607,6 +650,7 @@ function highlight  (e) {cancel(e);
         document.getElementById("window-area").setAttribute("style","opacity:1;visibility:visible");
         document.getElementById("window-border").style.border = "3px dashed #848484";
         document.getElementById("window-scale-container").style.transform = "scale(1.13)";
+        document.getElementById("window-scale-container").style.opacity = "1";
         document.getElementById("window-text").style.color = "#909090";
         document.getElementById("canvas1-bezier").setAttribute("style","fill:#8c8c8c;");
         windowEl.addEventListener(transitionEvent, highlightAnimCallback);
@@ -626,6 +670,7 @@ function unhighlight(e) {cancel(e);
             document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
             document.getElementById("window-border").style.border = "3px dashed #c3c3c3";
             document.getElementById("window-scale-container").style.transform = "scale(1)";
+            document.getElementById("window-scale-container").style.opacity = "0";
             document.getElementById("window-text").style.color = "#b5b5b5";
             document.getElementById("canvas1-bezier").setAttribute("style","fill:#c5c5c5;");
             windowEl.addEventListener(transitionEvent, unhighlightAnimCallback);
@@ -638,12 +683,6 @@ function unhighlightAnimCallback(event) {
 
 // ###### Resize Event ######
 function resize(e) {  
-    // #### Change to fixed value ####
-    // vih = window.innerHeight-(250)-4;
-    // limitedvih = Math.min(700,vih)
-    // viw = Math.min(1000, window.innerWidth-2);//1000;//Math.max(800, Math.floor(window.innerWidth*0.75));
-    // main.setAttribute("style", "width:"+viw+"px; height:"+limitedvih+"px;");
-    // list.setAttribute("style", "height:"+(limitedvih-40)+"px;");
 
     vih = window.innerHeight;
     viw = window.innerWidth - 480;
@@ -651,8 +690,6 @@ function resize(e) {
     limitedviw = Math.max(720,viw)
 
     updateResize()
-    // #### had moved outside ####
-    // update();
 }
 
 function getDPR() {  return window["devicePixelRatio"] || 1;  }

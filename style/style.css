@@ -147,6 +147,46 @@
 		transition: all 0.3s;
 	}
 
+	.window-loader{
+
+		width: 120px;
+		height: 120px;
+		left: 50%;
+		top: 50%;
+		display: inline-block;
+		position: absolute;
+		transform-origin: 24px;
+		transform: translate(-50%,-50%) scale(0);
+		opacity: 0;
+		transition: all 0.3s 0.2s;
+	}
+
+	.winloader-line-mask{
+		position: absolute;
+		width: 60px;
+		height: 120px;
+		overflow: hidden;
+		-webkit-transform-origin: 60px;
+		-moz-transform-origin: 60px;
+		-ms-transform-origin: 60px;
+		-o-transform-origin: 60px;
+		transform-origin: 60px;
+		-webkit-mask-image: -webkit-linear-gradient(top, #000000, rgba(0, 0, 0, 0));
+		-webkit-animation: rotate 0.8s infinite linear;
+		-moz-animation: rotate 0.8s infinite linear;
+		-o-animation: rotate 0.8s infinite linear;
+		animation: rotate 0.8s infinite linear;
+	}
+
+	.winloader-line{
+		width: 120px;
+		height: 120px;
+		border-radius: 50%;
+		box-shadow: inset 0 0 0 6px rgb(132, 132, 132);
+	}
+
+
+
 	.window-svg-container{
 		height: 80px;
 		position: absolute;
@@ -174,21 +214,6 @@
 		transition: all 0.3s;
 	}
 
-	.window-placeholder{
-		background-image:  url("../asset/drag-placeholder.png");
-		background-size:100%;
-		width: 181px;
-		height: 120px;
-
-		z-index: 100000;
-		top: 0;
-		left: 0;
-		display: inline-block;
-		margin: auto;
-		transition:all 0.2s;
-
-
-	}
 
 	#l-bottom{
 		float:left;
@@ -519,13 +544,13 @@
 		display: inline-block;
 		position: absolute;
 		transform-origin: 24px;
-		transform: translate(48px,7px)scale(0);
+		transform: translate(48px,5px)scale(0);
 		opacity: 0;
 		transition:all 0.3s;
 	  }
 
 	  .loader-container.show{
-		transform:  translate(48px,7px)scale(0.75);
+		transform:  translate(48px,5px)scale(0.75);
 		opacity: 1;
 	  }
 
@@ -537,13 +562,13 @@
 		display: inline-block;
 		position: absolute;
 		transform-origin: 24px;
-		transform: translate(23px,7px)scale(0);
+		transform: translate(23px,5px)scale(0);
 		opacity: 0;
 		transition:all 0.3s;
 	  }
 
 	  .loader-container2.show{
-		transform:  translate(23px,7px)scale(0.75);
+		transform:  translate(23px,5px)scale(0.75);
 		opacity: 1;
 	  }
 
