@@ -123,6 +123,7 @@
 		background: rgba(255,255,255,0.94);
 		z-index: 1000;
 		display: inline-flex;
+		visibility: hidden;
 		transition:all 0.3s;
 	}
 
@@ -198,6 +199,7 @@
 		border-top:1px solid #EBECF1;
 		bottom: 0;
 		transition: all 0.3s;
+		overflow: hidden;
 	}
 
 
@@ -263,10 +265,16 @@
 
 	} */
 
+	#totl{
+		width: 480px;
+		height: 39px;
+		transition: all 0.3s;
+	}
+
 	#totl .item{
-		position: absolute;
+		position: relative;
 		bottom:0px;
-		padding: 10px 20px 10px 20px;
+		padding: 12px 20px 10px 20px;
 		cursor: initial;
 	}
 	

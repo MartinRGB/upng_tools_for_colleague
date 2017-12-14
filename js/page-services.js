@@ -1,79 +1,15 @@
 //Main Here
 
+// ############ TODO ############
+// DeleteAnimation 优化
+// ADDPNG 优化之选中最后一个
+// ADDPNG Wait Animation
+// ##############################
+
 const UPNG = require('./js/UPNG.js')
 const UZIP = require('./js/UZIP.js')
 var Promise = require('promise');
 var Parallel = require('paralleljs')
-
-// ############# WORKER EXAMPLE #############
-
-// Classic
-// var worker = new Worker('./js/worker.js');
-
-// console.log('MAIN TASK: ', 'running');
-
-
-// //发送数据
-// worker.postMessage('Hello Worker, I am main.js');
-
-// // 接受数据
-// worker.addEventListener('message', function (e) {
-    
-//     console.log('MAIN RECEIVE: ',e.data);
-
-
-//     return new Promise((resolve, reject) => {
-//         worker.terminate();
-//         console.log('WORKER TERMINATED');
-//     });
-    
-// });
-
-
-// worker.postMessage(addSummary(2,3));
-
-// function addSummary(a,b){
-//     return (a+b).toString();
-// }
-
-
-// Tiny Worker
-//console.log('MAIN PROCESS: ', 'running');
-
-// var Worker = require("tiny-worker");
-// var worker = new Worker("./js/worker.js");
-
-// var worker = new Worker(function () {
-//     console.log('WORKER TASK: ', 'running');
-//     self.onmessage = function (e) {
-//         console.log('WORKER RECEIVE: ', e.data);
-
-//         return new Promise((resolve, reject) => {
-//             // 发送数据事件
-//             postMessage('Hello main, I am worker.js');
-//             console.log('WORKER Promise Worked');
-//         });
-//     };
-// });
-
- 
-// worker.onmessage = function (e) {
-//     console.log('MAIN RECEIVE: ',e.data);
-
-//     return new Promise((resolve, reject) => {
-//         worker.terminate();
-//         console.log('WORKER TERMINATED');
-//     });
-// };
- 
-// worker.postMessage("Hello Worker, I am main.js!");
-
-
-// Parallel
-//var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
-//console.log(para.data); // prints [1, 2, 3, 4, 5]
-
-// ############################################
 
 var pngs = [];
 var curr = -1;
@@ -86,13 +22,12 @@ var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
 var qualValue = 500;
 var shouldListAnim = false;
-var isHighlighting = false;
 var prevliLength = 0;
 var nowliLength = 0;
 var windowEl;
 var transitionEvent;
 var dragCounter = 0;
-
+var compressCounter = 0;
 
 
 
@@ -122,38 +57,10 @@ function loadURL(path, resp)
 function urlLoaded(e) {  addPNG(e.target.response, e.target._fname);  }
 
 
-function addPNG(buff, name)
-{
-    var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], ubuff=new Uint8Array(buff);
-    for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
-    var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
-    var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
-    var nc = pngs.length;  pngs.push(npng);  
+function setCurr(nc) {  
+    curr=nc;  
+    ioff={x:0,y:0};  
 
-    // // ### SingleThread ###
-    // recompute(nc);  
-
-    // // 开启列表动画
-    // shouldListAnim = true;
-    // setCurr(nc);
-
-    // //开启底部动画
-    // if(lbottom.offsetHeight != 203+1){
-    //     lbottom.setAttribute("style", "height:"+(203)+"px;");
-    //     lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
-    // }
-
-    // ### MultiThread ###
-    multiThreadRecompute(nc)
-
-
-}
-
-
-
-function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};  
-
-    
     update()
 
     // Add List Anim
@@ -165,6 +72,12 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
                 console.log('updated');
 
                 var addArray = document.querySelectorAll("#list #image-li");
+
+                //开启底部动画
+                if(lbottom.offsetHeight != 203+1){
+                    lbottom.setAttribute("style", "height:"+(203)+"px;");
+                    lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+                }
 
 
                 // 从上一次动画完成处开始动画，到最大长度
@@ -196,22 +109,23 @@ function setCurr(nc) {  curr=nc;  ioff={x:0,y:0};
 }
 
 
-function multiThreadRecompute(i){
+function multiThreadRecompute(i,func,callback){
     var p = pngs[i]
     var worker = new Worker('./js/recompute-worker.js');
-    
-    // console.log('MAIN TASK: ', 'running');
+
     
     //发送数据
     worker.postMessage({
         img:p,
-        num:cnum
+        num:cnum,
+        index:i
     });
     
     // 接受数据
     worker.addEventListener('message', function (e) {
         
-        // console.log('MAIN RECEIVE: ',e.data);
+
+        console.log("worker finished,num is ",i)
         // 一定要确保销毁
         worker.terminate();
     
@@ -220,17 +134,20 @@ function multiThreadRecompute(i){
             p.ndata = e.data.pndata;
             p.nrgba = e.data.pnrgba;
             shouldListAnim = true;
-            setCurr(i);
-            // console.log('WORKER TERMINATED');
             resolve()
+            // 因为多线程，不一定哪个最先，这里要处理
+            func(i);
+            // console.log('WORKER TERMINATED');
+            //resolve()
         }).then(function(){
-            //开启底部动画
+            compressCounter++;
 
-
-            if(lbottom.offsetHeight != 203+1){
-                lbottom.setAttribute("style", "height:"+(203)+"px;");
-                lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+            if(compressCounter == nowliLength){
+                callback()
             }
+
+            console.log("compressCounter is ", compressCounter )
+            console.log("nowliLength is ", compressCounter )
         });
         
     });
@@ -238,17 +155,9 @@ function multiThreadRecompute(i){
 
 }
 
-function recompute(i) {
-    var p = pngs[i];
-    p.ndata = UPNG.encode([p.orgba.buffer], p.width, p.height, cnum);
-    if(p.ndata.byteLength > p.odata.byteLength) p.ndata = p.odata;
-    var img  = UPNG.decode(p.ndata);
-    p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
-    console.log('recomputed')
-}
-
 function update()
 {
+
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
     if(curr == -1){
         // list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><div id=\"drag-placeholder\" class=\"drag-placeholder\"></div><!-- <span>Drag PNG files here!</span> --></div></div>"
@@ -291,7 +200,10 @@ function update()
                 li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
             }
         }
-        else              {  iname="Total:";  os = tos;  ns = tns;  cont = totl;  }
+        else{  
+
+            iname="Total:";  os = tos;  ns = tns;  cont = totl;  
+        }
         
         var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
         
@@ -314,12 +226,6 @@ function update()
 
     }
 
-
-
-
-
-
-    
     // Canvas Size
     var dpr = getDPR();
     var iw = window.innerWidth-2;
@@ -380,96 +286,126 @@ function itemClick(e) {
     shouldListAnim = false;
     var index = e.currentTarget._indx; 
     if(e.target.innerHTML != '✖'){
-        setCurr(index);  
-        var p=pngs[index];  
-        if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
+        selectPNG(index,e)
     }
     else{
-
-
-        // Delete Animation
-        var addArray = document.querySelectorAll("#list #image-li");
-
-
-        for(var i=0; i<pngs.length; i++){
-            // Delete 选中项
-            // 移除 clickListener
-            addArray[i].removeEventListener("click", itemClick, false);
-            if(i == index){
-                // 最后一项目
-                if(index == pngs.length -1){
-                    addArray[i].setAttribute("style", "transform: scale(0.6) translateY(0px);opacity:0 !important;");
-                }
-                // 其余项目
-                else{
-                    addArray[i].setAttribute("style", "transform: scale(0.6) translateY(60px);opacity:0 !important;");
-                }
-            }
-            // Delete 选中项底部项
-            else if(i > index){
-
-                if(i - index < Math.ceil(list.offsetHeight/80)){
-                    addArray[i].setAttribute("style", "transform:scale(1) translateY(-90px);");
-                }
-            }
-        }
-
-        setTimeout(function () {    //  call a 3s setTimeout when the loop is called
-                pngs.splice(index, 1);
-
-                // 删除后，更新 liLength 4 list Anim
-                nowliLength -=1;
-                prevliLength -=1;
-            
-                //删除除最后一个
-                if(index <= pngs.length-1 && index >= 0){
-                    setCurr(index);
-                }
-                else{
-                    //完全清空
-                    if(pngs.length == 0){
-                        setCurr(-1)
-                        if(lbottom.offsetHeight == 203+1){
-                            lbottom.setAttribute("style", "height:"+(161)+"px;");
-                            lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
-                        }
-                        totl.innerHTML = "";
-        
-                    }
-                    //删除最后一个
-                    else{
-                        setCurr(index-1)
-                    }
-                }
-                
-                // 添加 clickListener
-                for(var i=0; i<pngs.length; i++){
-                    addArray[i].addEventListener("click", itemClick, false);
-                }
-         }, 500)
-
-
-         
+        removePNG(index);
     }
+}
+
+
+function addPNG(buff, name)
+{
+    var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], ubuff=new Uint8Array(buff);
+    for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
+    var img  = UPNG.decode(buff), rgba = UPNG.toRGBA8(img)[0];
+    var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
+    var nc = pngs.length;  pngs.push(npng);  
+
+    // // ### SingleThread ###
+    // recompute(nc);  
+
+    // // 开启列表动画
+    // shouldListAnim = true;
+    // setCurr(nc);
+
+    // //开启底部动画
+    // if(lbottom.offsetHeight != 203+1){
+    //     lbottom.setAttribute("style", "height:"+(203)+"px;");
+    //     lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+    // }
+
+    // ### MultiThread ### 还可以进一步优化
+    compressCounter = 0;
+    multiThreadRecompute(nc,setCurr,null)
+
+}
+
+
+function selectPNG(index,e){
+
+    // Select Item;
+    setCurr(index);  
+    var p=pngs[index];  
+    if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
+}
+
+function removePNG(index){
+    // Delete Animation
+    var addArray = document.querySelectorAll("#list #image-li");
+    
+    
+            for(var i=0; i<pngs.length; i++){
+                // Delete 选中项
+                // 移除 clickListener
+                addArray[i].removeEventListener("click", itemClick, false);
+                if(i == index){
+                    // 最后一项目
+                    if(index == pngs.length -1){
+                        addArray[i].setAttribute("style", "transform: scale(0.6) translateY(0px);opacity:0 !important;");
+                    }
+                    // 其余项目
+                    else{
+                        addArray[i].setAttribute("style", "transform: scale(0.6) translateY(60px);opacity:0 !important;");
+                    }
+                }
+                // Delete 选中项底部项
+                else if(i > index){
+    
+                    if(i - index < Math.ceil(list.offsetHeight/80)){
+                        addArray[i].setAttribute("style", "transform:scale(1) translateY(-90px);");
+                    }
+                }
+            }
+    
+            setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+                    pngs.splice(index, 1);
+    
+                    // 删除后，更新 liLength 4 list Anim
+                    nowliLength -=1;
+                    prevliLength -=1;
+                
+                    //删除除最后一个
+                    if(index <= pngs.length-1 && index >= 0){
+                        setCurr(index);
+                    }
+                    else{
+                        //完全清空
+                        if(pngs.length == 0){
+                            setCurr(-1)
+                            if(lbottom.offsetHeight == 203+1){
+                                lbottom.setAttribute("style", "height:"+(161)+"px;");
+                                lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
+                            }
+                            totl.innerHTML = "";
+            
+                        }
+                        //删除最后一个
+                        else{
+                            setCurr(index-1)
+                        }
+                    }
+                    
+                    // 添加 clickListener
+                    for(var i=0; i<pngs.length; i++){
+                        addArray[i].addEventListener("click", itemClick, false);
+                    }
+             }, 500)
 }
 
 function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
 function toBlock(txt, w) {  var st = w ? " style=\"width:"+w+"em;\"":"";  return "<span"+st+">"+txt+"</span>";  }
-
-
 
 const PageServices = {
 
 
     Go:function()
     {
-        //loadURL("grid.png");  loadURL("bunny.png");
 
         hasAdded = false;
         shouldListAnim = false;
         nowliLength = 0;
         prevliLength = 0;
-        isHighlighting = false;
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -522,148 +458,107 @@ const PageServices = {
     moveQual:function(val) {  
         if(hasAdded){
     
-            // 影响速度
-            // if(val>990) cnum=0;
-            // else cnum = Math.max(2, Math.round(510*val/1000));
-            // for(var i=0; i<pngs.length; i++) recompute(i);
-            // // Only recompute Curr Img
-            // // recompute(curr)
-            // // update();
-            // updateValue()
-
             qualValue = val;
         }
     },
 
     resetAll:function (){
 
-        
-        if(hasAdded && document.getElementById('eRNG').value != 500){
-
-
-            var myFirstPromise = new Promise(function(resolve, reject){
-                if(hasAdded){
-    
-                    document.getElementById('reset-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
-                    document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0.75);opacity: 1;")
-                    document.getElementById('reset-btn').setAttribute("style","cursor:progress;")
-    
-    
-                                            
-    
-                    setTimeout(function(){
-                        resolve()
-                    }, 50);
-                }
-    
-            });
-            
-            myFirstPromise.then(function(){
-                
-                var mySecondPromise = new Promise(function(resolve, reject){
-        
-
-                    cnum = Math.max(2, Math.round(510*500/1000));
-                    for(var i=0; i<pngs.length; i++) recompute(i);
-                    updateValue()
-                    resolve()
-                });
-    
-                mySecondPromise.then(function(){
-
-                    document.getElementById('eRNG').value = 500;
-
-                    setTimeout(function(){
-                        document.getElementById('reset-icon').setAttribute("style","transform: scale(1);opacity:1;")
-                        document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0);opacity: 0;")
-                        document.getElementById('reset-btn').setAttribute("style","")
-                    }, 250);
-
-                    resolve()
-    
-    
-                })
-    
-            });
-        
+        if(document.getElementById('eRNG').value != 500){
+            compressAll(resetedAllBefore,resetedAllAfter)
         }
-
-        return new Promise((resolve, reject) => {
-            console.log('reseted');
-        });
-
-        // window.location.reload(false); 
     },
+
     saveAll:function ()
     {
+
         // Original
         // var obj = {};
         // for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
         // save(UZIP.encode(obj).buffer, "compressed_images.zip");
 
-
-        var myFirstPromise = new Promise(function(resolve, reject){
-            if(hasAdded){
-
-                document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
-                document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0.75);opacity: 1;")
-                document.getElementById('compress-btn').setAttribute("style","cursor:progress;")
-
-
-										
-
-                setTimeout(function(){
-                    resolve()
-                }, 50);
-            }
-
-        });
-        
-        myFirstPromise.then(function(){
-            
-            var mySecondPromise = new Promise(function(resolve, reject){
-    
-                if(qualValue>990) cnum=0;
-                else cnum = Math.max(2, Math.round(510*qualValue/1000));
-                for(var i=0; i<pngs.length; i++) recompute(i);
-                // Only recompute Curr Img
-                // recompute(curr)
-                // update();
-    
-                updateValue()
-                resolve()
-            });
-
-            mySecondPromise.then(function(){
-                setTimeout(function(){
-                    document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
-                    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0);opacity: 0;")
-                    document.getElementById('compress-btn').setAttribute("style","")
-                    //document.getElementById('compress-text').innerHTML = "DOWNLOAD ALL"
-                }, 250);
-                resolve()
-
-
-            })
-
-        });
-
+        compressAll(compressedAllBefore,compressedAllAfter);
     }
 
+}
+// ###### Compress ######
 
+function compressAll(beforeCompress,afterCompress){
+    
+
+    var myFirstPromise = new Promise(function(resolve, reject){
+        if(hasAdded){
+            beforeCompress()
+
+            setTimeout(function(){
+                resolve()
+            }, 50);
+        }
+
+    });
+    
+    myFirstPromise.then(function(){
+        
+        for(var i=0; i<pngs.length; i++){
+            multiThreadRecompute(i,null,afterCompress)
+        }
+    });
+}
+
+function resetedAllBefore(){
+
+    cnum = 256;
+    compressCounter = 0;
+    document.getElementById('reset-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
+    document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0.75);opacity: 1;")
+    document.getElementById('reset-btn').setAttribute("style","cursor:progress;")
 
 }
 
 
+function resetedAllAfter(){
+    update()
+    return new Promise((resolve, reject) => {
+        setTimeout(function(){
+            document.getElementById('reset-icon').setAttribute("style","transform: scale(1);opacity:1;")
+            document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,7px) scale(0);opacity: 0;")
+            document.getElementById('reset-btn').setAttribute("style","")
+            document.getElementById('eRNG').value = 500;
+        }, 250);
+    });
+
+}
+
+function compressedAllBefore(){
+
+    if(qualValue>1000) cnum=0;
+    else cnum = Math.max(2, Math.round(500*qualValue/1000));
+    compressCounter = 0;
+
+    document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
+    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0.75);opacity: 1;")
+    document.getElementById('compress-btn').setAttribute("style","cursor:progress;")	
+}
+
+function compressedAllAfter(){
+    update()
+    return new Promise((resolve, reject) => {
+        setTimeout(function(){
+            document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
+            document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,7px) scale(0);opacity: 0;")
+            document.getElementById('compress-btn').setAttribute("style","")
+        }, 250);
+    });
+}
+
+// ###### Move Canvas Listener ######
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
-function onMM(e) {  
-    ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
+function onMM(e) {ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
     moveCurr(curr);  
-    
 }
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
 
-
+// ###### File Drop Data ######
 function onFileDrop(e) {  cancel(e);
     var fls = e.dataTransfer? e.dataTransfer.files : e.target.files;
     for(var i=0; i<fls.length; i++) {
@@ -681,18 +576,11 @@ function onFileDrop(e) {  cancel(e);
 }			
 function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name); 
     return new Promise((resolve, reject) => {
-        // ?异步操作，最终调用:
-        //
-        //   resolve(someValue); // fulfilled
-        // ?或
-        //   reject("failure reason"); // rejected
-
-        
         console.log('loaded');
     });
 }
 
-
+// ###### CSS Transition Finished CallBack ######
 function whichTransitionEvent(){
     var t,
         el = document.createElement("fakeelement");
@@ -711,8 +599,7 @@ function whichTransitionEvent(){
     }
 }
 
-// function highlight  (e) {cancel(e); list.style.boxShadow="inset 0px 0px 15px blue"; }
-// function unhighlight(e) {cancel(e); list.style.boxShadow="none";}
+// ###### File Drop Animation ######
 function highlight  (e) {cancel(e); 
 
         dragCounter++;
@@ -724,8 +611,6 @@ function highlight  (e) {cancel(e);
         document.getElementById("window-text").style.color = "#909090";
         document.getElementById("canvas1-bezier").setAttribute("style","fill:#8c8c8c;");
         windowEl.addEventListener(transitionEvent, highlightAnimCallback);
-        
-
     
 }
 function highlightAnimCallback(event) {
@@ -737,7 +622,6 @@ function highlightAnimCallback(event) {
 function unhighlight(e) {cancel(e); 
         dragCounter--;
         console.log(dragCounter)
-        //onsole.log(e.type)
         if (dragCounter == 0) { 
             
             document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
@@ -753,9 +637,9 @@ function unhighlightAnimCallback(event) {
     windowEl.removeEventListener(transitionEvent, unhighlightAnimCallback);
 }
 
-
+// ###### Resize Event ######
 function resize(e) {  
-    //Change to fixed value
+    // #### Change to fixed value ####
     // vih = window.innerHeight-(250)-4;
     // limitedvih = Math.min(700,vih)
     // viw = Math.min(1000, window.innerWidth-2);//1000;//Math.max(800, Math.floor(window.innerWidth*0.75));
@@ -768,13 +652,12 @@ function resize(e) {
     limitedviw = Math.max(720,viw)
 
     updateResize()
-    // had moved outside
-    //update();
+    // #### had moved outside ####
+    // update();
 }
 
 function getDPR() {  return window["devicePixelRatio"] || 1;  }
 function cancel(e) { e.stopPropagation(); e.preventDefault(); }
-
 
 // Some Optimize Functions
 function updateResize(){
@@ -787,9 +670,6 @@ function updateResize(){
     cnv.width = pw;  cnv.height = ph;
     var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
     cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
-    
-
-
     
     // Update Current Image When Compressing
     if(hasAdded){
@@ -812,56 +692,48 @@ function updateResize(){
     
 }
 
-function updateValue(){
+// ###### Update Curr ListData & Canvas Data ######
+function updateCurr(i){
     var tos = 0, tns = 0;
 
-    // Left Value Update
-    for(var i=0; i<=pngs.length; i++)
-    {
-        var p = pngs[i];
-        
-        //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
-        
-        var iname, os, ns, cont, pw=0, ph=0;
-        if(i<pngs.length) {  
-            iname=p.name;  
-            os = p.odata.byteLength;  
-            ns = p.ndata.byteLength;  
-            tos+=os;  
-            tns+=ns;  
-            cont=list;  
-            pw=p.width;  
-            ph=p.height;  
-        }
-        else             
-        {  
-            iname="Total:";  
-            os = tos;  
-            ns = tns;  
-            cont = totl;  
-        }
-        
-        var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
-
-        document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
-        document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
-
+    var p = pngs[i];
+    
+    var iname, os, ns, cont, pw=0, ph=0;
+    if(i<pngs.length) {  
+        iname=p.name;  
+        os = p.odata.byteLength;  
+        ns = p.ndata.byteLength;  
+        tos+=os;  
+        tns+=ns;  
+        cont=list;  
+        pw=p.width;  
+        ph=p.height;  
     }
+    else             
+    {  
+        iname="Total:";  
+        os = tos;  
+        ns = tns;  
+        cont = totl;  
+    }
+    
+    var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
+
+    document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
+
+    document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
+
+    //### 差一个统计计算，需要在最后一个 worker 结束后，计算
 
     // Canvas Size
     var dpr = getDPR();
-    var iw = window.innerWidth-2;
-
-    //Changed to fixed Value;
-    // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
-    // var ph = 720; //Math.floor(limitedvih*dpr)
     var pw = Math.floor(limitedviw*dpr);
     var ph = Math.floor(limitedvih*dpr);
         
-
     // Update Current Image
-    if(curr!=-1) {
-        var p = pngs[curr], l = p.width*p.height*4;					
+    if(i == curr){
+        
+        l = p.width*p.height*4;					
         var imgd = ctx.createImageData(p.width, p.height);
         for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
         ctx.clearRect(0,0,cnv.width,cnv.height);
@@ -873,12 +745,11 @@ function updateValue(){
         var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+
     }
-
-    
-
 }
 
+// ###### Move Curr Canvas Data ######
 function moveCurr(curr)
 {
 
@@ -905,12 +776,154 @@ function moveCurr(curr)
         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
     }
 
-
-
 }
-
-
 
 module.exports = PageServices;
 
 
+
+// function recompute(i) {
+//     var p = pngs[i];
+//     p.ndata = UPNG.encode([p.orgba.buffer], p.width, p.height, cnum);
+//     if(p.ndata.byteLength > p.odata.byteLength) p.ndata = p.odata;
+//     var img  = UPNG.decode(p.ndata);
+//     p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
+//     console.log('recomputed')
+// }
+
+
+// function updateValue(){
+//     var tos = 0, tns = 0;
+
+//     // Left Value Update
+//     for(var i=0; i<=pngs.length; i++)
+//     {
+//         var p = pngs[i];
+        
+//         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
+        
+//         var iname, os, ns, cont, pw=0, ph=0;
+//         if(i<pngs.length) {  
+//             iname=p.name;  
+//             os = p.odata.byteLength;  
+//             ns = p.ndata.byteLength;  
+//             tos+=os;  
+//             tns+=ns;  
+//             cont=list;  
+//             pw=p.width;  
+//             ph=p.height;  
+//         }
+//         else             
+//         {  
+//             iname="Total:";  
+//             os = tos;  
+//             ns = tns;  
+//             cont = totl;  
+//         }
+        
+//         var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
+
+//         document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
+//         document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
+
+//     }
+
+//     // Canvas Size
+//     var dpr = getDPR();
+//     var iw = window.innerWidth-2;
+
+//     //Changed to fixed Value;
+//     // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
+//     // var ph = 720; //Math.floor(limitedvih*dpr)
+//     var pw = Math.floor(limitedviw*dpr);
+//     var ph = Math.floor(limitedvih*dpr);
+        
+
+//     // Update Current Image
+//     if(curr!=-1) {
+//         var p = pngs[curr], l = p.width*p.height*4;					
+//         var imgd = ctx.createImageData(p.width, p.height);
+//         for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+//         ctx.clearRect(0,0,cnv.width,cnv.height);
+//         var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+//         if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+//         if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+//         var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+//         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+//         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+//     }
+
+// }
+
+
+// ############# WORKER EXAMPLE #############
+
+// ### Classic ### 
+// var worker = new Worker('./js/worker.js');
+
+// console.log('MAIN TASK: ', 'running');
+
+
+// //发送数据
+// worker.postMessage('Hello Worker, I am main.js');
+
+// // 接受数据
+// worker.addEventListener('message', function (e) {
+    
+//     console.log('MAIN RECEIVE: ',e.data);
+
+
+//     return new Promise((resolve, reject) => {
+//         worker.terminate();
+//         console.log('WORKER TERMINATED');
+//     });
+    
+// });
+
+
+// worker.postMessage(addSummary(2,3));
+
+// function addSummary(a,b){
+//     return (a+b).toString();
+// }
+
+
+// ### Tiny Worker ###
+//console.log('MAIN PROCESS: ', 'running');
+
+// var Worker = require("tiny-worker");
+// var worker = new Worker("./js/worker.js");
+
+// var worker = new Worker(function () {
+//     console.log('WORKER TASK: ', 'running');
+//     self.onmessage = function (e) {
+//         console.log('WORKER RECEIVE: ', e.data);
+
+//         return new Promise((resolve, reject) => {
+//             // 发送数据事件
+//             postMessage('Hello main, I am worker.js');
+//             console.log('WORKER Promise Worked');
+//         });
+//     };
+// });
+
+ 
+// worker.onmessage = function (e) {
+//     console.log('MAIN RECEIVE: ',e.data);
+
+//     return new Promise((resolve, reject) => {
+//         worker.terminate();
+//         console.log('WORKER TERMINATED');
+//     });
+// };
+ 
+// worker.postMessage("Hello Worker, I am main.js!");
+
+
+// ### Parallel ###
+//var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
+//console.log(para.data); // prints [1, 2, 3, 4, 5]
+
+// ############################################

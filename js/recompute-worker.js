@@ -15,6 +15,7 @@ onmessage = function (e) {
 
     p = e.data.img;
     cnum = e.data.num;
+    console.log("worker received,num is ",e.data.index)
     // 接受完数据后
     resolve()
 
