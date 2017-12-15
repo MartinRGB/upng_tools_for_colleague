@@ -40,12 +40,14 @@
 
 		width: 1200px;
 		margin: 0;
-		height: 720px;
+		height: 100vh;
 	}
 
 	#left{
-		height: 720px;
+		height: 100vh;
 		width: 479px;
+		z-index: 1;
+		position: relative;
 		float:left;
 		border-right: 1px solid #EBECF1;
 	}
@@ -590,7 +592,17 @@
 		color: white;
 		border: 1px solid #344cda;
 		text-shadow: 0px 1px 2px #1e3096;
-		/* transition:all 0.3s; */
+		transition:all 0.3s;
+	  }
+
+	  .download-all-btn{
+		background-color: #44cb63;
+		border: 1px solid #24bf71;
+		text-shadow: 0px 1px 2px #177345;
+	  }
+
+	  .download-all-btn:active{
+		  background-color: #0e6f3e !important;
 	  }
 
 	  /* .compress-btn:hover{

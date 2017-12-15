@@ -1,16 +1,16 @@
 {
   "name": "png-minifier",
   "productName": "PNG Minifier",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A PNG minifier based on UPNG.js",
   "main": "./js/main.js",
   "scripts": {
     "start": "electron .",
     "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=asset/pngm.icns --prune=true --out=release-builds",
-    "package-win": "electron-packager . png-minifier-app --overwrite --asar=true --platform=win32 --arch=ia32 --icon=asset/pngm.ico --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"PNG Minifier\""  
+    "package-win": "electron-packager . PNG.Minifier --overwrite --asar=true --platform=win32 --arch=ia32 --icon=asset/pngm.ico --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"PNG Minifier\""  
     
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/MartinRGB/upng_tools_for_colleague",
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^1.7.9",

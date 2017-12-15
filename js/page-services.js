@@ -447,6 +447,7 @@ const PageServices = {
         shouldListAnim = false;
         nowliLength = 0;
         prevliLength = 0;
+        COMPRESS_SAVE_BUTTON_STATE = 0;
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -498,7 +499,7 @@ const PageServices = {
 
     moveQual:function(val) {  
         if(hasAdded){
-    
+            downloadToSave()
             qualValue = val;
         }
     },
@@ -518,10 +519,39 @@ const PageServices = {
         // for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
         // save(UZIP.encode(obj).buffer, "compressed_images.zip");
 
-        compressAll(compressedAllBefore,compressedAllAfter);
+        if(COMPRESS_SAVE_BUTTON_STATE == 0){
+            compressAll(compressedAllBefore,compressedAllAfter);
+        }
+        if (COMPRESS_SAVE_BUTTON_STATE == 1){
+            console.log('work here')
+            var obj = {};
+            for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
+            save(UZIP.encode(obj).buffer, "compressed_images.zip");
+        }
     }
 
 }
+
+var COMPRESS_SAVE_BUTTON_STATE = 0;
+function saveToDownload(){
+    if( COMPRESS_SAVE_BUTTON_STATE == 0){
+        document.getElementById('compress-icon').setAttribute("class","icon-Magic icon-download---FontAwesome")
+        document.getElementById('compress-btn').setAttribute("class","compress-btn download-all-btn")
+        document.getElementById('compress-text').innerHTML = ' DOWNLOAD ALL';
+        COMPRESS_SAVE_BUTTON_STATE = 1;
+    }
+}
+
+
+function downloadToSave(){
+    if(COMPRESS_SAVE_BUTTON_STATE == 1){
+        document.getElementById('compress-icon').setAttribute("class","icon-Magic")
+        document.getElementById('compress-btn').setAttribute("class","compress-btn")
+        document.getElementById('compress-text').innerHTML = ' COMPRESS ALL';
+        COMPRESS_SAVE_BUTTON_STATE = 0;
+    }
+}
+
 // ###### Compress ######
 
 function compressAll(beforeCompress,afterCompress){
@@ -554,6 +584,7 @@ function resetedAllBefore(){
     document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0.75);opacity: 1;")
     document.getElementById('reset-btn').setAttribute("style","cursor:progress;")
 
+
 }
 
 
@@ -565,6 +596,7 @@ function resetedAllAfter(){
             document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0);opacity: 0;")
             document.getElementById('reset-btn').setAttribute("style","")
             document.getElementById('eRNG').value = 500;
+            downloadToSave();
         }, 250);
     });
 
@@ -585,6 +617,7 @@ function compressedAllAfter(){
     update()
     return new Promise((resolve, reject) => {
         setTimeout(function(){
+            saveToDownload();
             document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
             document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0);opacity: 0;")
             document.getElementById('compress-btn').setAttribute("style","")
