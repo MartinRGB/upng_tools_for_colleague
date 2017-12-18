@@ -650,7 +650,8 @@ function onFileDrop(e) {  cancel(e);
     nowliLength += fls.length;
 }			
 function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name); 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {      
+        saveToDownload();    
         console.log('loaded');
     });
 }
