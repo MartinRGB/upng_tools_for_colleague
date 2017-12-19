@@ -38,7 +38,7 @@
 		/* margin:0 auto; */
 		overflow-x:visible;
 
-		width: 1200px;
+		width: 100vw;
 		margin: 0;
 		height: 100vh;
 	}
@@ -50,6 +50,7 @@
 		position: relative;
 		float:left;
 		border-right: 1px solid #EBECF1;
+		box-shadow: 15px 0px 35px rgba(50,50,93,.1), 5px 0px 15px rgba(0,0,0,.07);
 	}
 
 	#l-top{
@@ -348,8 +349,8 @@
 
 	#right{
 		float: left;
-		height: 720px;
-		width: 720px;
+		height: 100vh;
+		width: calc(100vw - (480px));
 	}
 
 	#list {

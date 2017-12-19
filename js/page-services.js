@@ -8,9 +8,11 @@
 // ADDPNG 加载顺序
 // ##############################
 
-const UPNG = require('./js/UPNG.js')
+// const UPNG = require('./js/UPNG.js')
 const UZIP = require('./js/UZIP.js')
 var Promise = require('promise');
+var textures = require('textures');
+var d3 = require("d3");
 
 var pngs = [];
 var curr = -1;
@@ -23,12 +25,26 @@ var ioff = {x:0, y:0}, mouse=null;
 var hasAdded = false;
 var qualValue = 500;
 var shouldListAnim = false;
-var prevliLength = 0;
-var nowliLength = 0;
 var windowEl;
 var transitionEvent;
+
+// List Length
+var prevliLength = 0;
+var nowliLength = 0;
+
+// Drag Counter
 var dragCounter = 0;
+
+// Compress At End Counter
 var compressCounter = 0;
+
+// Loading Boolean
+var canInitLoading = true;
+
+// Add Counter
+var addIndex = -1;
+var tempCounter = 0;
+var tempArray = [];
 
 
 function save(buff, path)
@@ -54,14 +70,24 @@ function loadURL(path, resp)
     request.onload = urlLoaded;
     request.send();
 }
-function urlLoaded(e) {  addPNG(e.target.response, e.target._fname);  }
+function urlLoaded(e) {  addIndex++;addPNG(e.target.response, e.target._fname);  }
 
 
-function setCurr(nc) {  
-    curr=nc;  
+function setCurr(nc,isAdd) {  
+    if(isAdd){
+        curr=nowliLength - 1;  
+    }
+    else{
+        curr=nc;  
+    }
+
+    // curr=nc; 
     ioff={x:0,y:0};  
 
     update()
+
+    // ### 搞一个 Counter 最后添加
+    // console.log(nc,"nc")
 
     // Add List Anim
     return new Promise((resolve, reject) => {
@@ -110,57 +136,11 @@ function setCurr(nc) {
 }
 
 
-function multiThreadRecompute(i,func,callback){
-    var p = pngs[i]
-    var worker = new Worker('./js/recompute-worker.js');
-
-    
-    //发送数据
-    worker.postMessage({
-        img:p,
-        num:cnum,
-        index:i
-    });
-    
-    // 接受数据
-    worker.addEventListener('message', function (e) {
-        
-
-        console.log("worker finished,num is ",i)
-        // 一定要确保销毁
-        worker.terminate();
-    
-        return new Promise((resolve, reject) => {
-
-            p.ndata = e.data.pndata;
-            p.nrgba = e.data.pnrgba;
-            shouldListAnim = true;
-            resolve()
-            // 因为多线程，不一定哪个最先，这里要处理,setCurr 选择错误之所在
-            func(i);
-            // console.log('WORKER TERMINATED');
-        }).then(function(){
-            compressCounter++;
-
-            if(compressCounter == nowliLength){
-                callback()
-            }
-
-            console.log("compressCounter is ", compressCounter )
-            console.log("nowliLength is ", compressCounter )
-        });
-        
-    });
-
-}
-
 function update()
 {
 
     if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
     if(curr == -1){
-        // list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><div id=\"drag-placeholder\" class=\"drag-placeholder\"></div><!-- <span>Drag PNG files here!</span> --></div></div>"
-
         list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><img src=\"./asset/art.svg\" class=\"empty-img\"><span class=\"empty-text\">Please add PNG</span></div><!-- <span>Drag PNG files here!</span> --></div></div>"
     }
     var tos = 0, tns = 0;
@@ -177,7 +157,7 @@ function update()
         li.id='image-li'
 
         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
-        
+
         var iname, os, ns, cont, pw=0, ph=0;
         if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);
 
@@ -275,14 +255,16 @@ function itemClick(e) {
 }
 
 
-function multiThreadRead(buff,name){
+
+function multiThreadRead(buff,name,index){
 
     var worker = new Worker('./js/read-worker.js');
 
     //发送数据
     worker.postMessage({
         buff:buff,
-        name:name
+        name:name,
+        num:index
     });
     
     // 接受数据
@@ -290,32 +272,88 @@ function multiThreadRead(buff,name){
         
         // 一定要确保销毁
         worker.terminate();
-    
-        return new Promise((resolve, reject) => {
 
-            // Add Code Here
-            var nc = pngs.length; 
-            // 排序错误问题所在 
-            pngs.push(e.data.png);  
-            
-            compressCounter = 0;
-            multiThreadRecompute(nc,setCurr,null)
-            
-            resolve()
-        })
+        var mIndex = e.data.index;
+        var mPng = e.data.png;
+        //只在 Array 头几个 index 添加新添加的
+        tempArray[mIndex-prevliLength]=mPng;
+
+
+        tempCounter++;
+        // console.log("nowliLength",nowliLength - prevliLength)
+        // console.log("tempCounter",tempCounter)
+
+        if(tempCounter == nowliLength - prevliLength){
+
+            return new Promise((resolve, reject) => {
+                pngs.push.apply(pngs,tempArray);  
+                resolve()
+            }).then(function(){
+                tempArray = [];
+                tempCounter = 0; 
+                //只重新计算添加的
+                for(var i=prevliLength; i<pngs.length; i++){
+                    multiThreadRecompute(i,setCurr,afterAdd)
+                }
+            })
+
+        }
         
     });
 
 }
 
-var canInitLoading = true;
 
-function addPNG(buff, name)
+
+function multiThreadRecompute(i,func,callback){
+    var p = pngs[i]
+    var worker = new Worker('./js/recompute-worker.js');
+
+    
+    //发送数据
+    worker.postMessage({
+        img:p,
+        num:cnum,
+        index:i
+    });
+    
+    // 接受数据
+    worker.addEventListener('message', function (e) {
+        
+
+        console.log("worker finished,num is ",i)
+        // 一定要确保销毁
+        worker.terminate();
+    
+        return new Promise((resolve, reject) => {
+
+            p.ndata = e.data.pndata;
+            p.nrgba = e.data.pnrgba;
+            shouldListAnim = true;
+            resolve()
+            func(i,true);
+            // console.log('WORKER TERMINATED');
+        }).then(function(){
+
+            //最后一个线程完成后，才执行
+            compressCounter++;
+
+
+            console.log("compressCounter is ", compressCounter )
+            console.log("nowliLength is ", nowliLength )
+            if(compressCounter == nowliLength){
+
+                callback()
+            }
+
+        });
+        
+    });
+
+}
+
+function addPNG(buff, name,index)
 {
-
-    //排序错误了
-    //multiThreadRead(buff,name);
-
 
     if(canInitLoading){
         document.getElementById('window-scale-container').setAttribute("style","transform:scale(0);opacity:0");
@@ -323,23 +361,12 @@ function addPNG(buff, name)
         canInitLoading = false;
     }
     
-    
-
-
     return new Promise((resolve, reject) => {
-        var mgc=[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-        var ubuff=new Uint8Array(buff);
-        for(var i=0; i<8; i++) if(mgc[i]!=ubuff[i]) return;
-        var img  = UPNG.decode(buff)
-        var rgba = UPNG.toRGBA8(img)[0];
-        var npng = {name:name, width:img.width, height:img.height, odata:buff, orgba:new Uint8Array(rgba), ndata:null, nrgba:null };
-        var nc = pngs.length;  
-        pngs.push(npng);  
-    
-        // // ### MultiThread ### 还可以进一步优化 选择错误了
+
         compressCounter = prevliLength;
-        multiThreadRecompute(nc,setCurr,afterAdd)
+        multiThreadRead(buff,name,index);
     });
+    
 
 }
 
@@ -366,7 +393,7 @@ function afterAdd(){
 function selectPNG(index,e){
 
     // Select Item;
-    setCurr(index);  
+    setCurr(index,false);  
     var p=pngs[index];  
     if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
 }
@@ -405,10 +432,11 @@ function removePNG(index){
                     // 删除后，更新 liLength 4 list Anim
                     nowliLength -=1;
                     prevliLength -=1;
+                    addIndex -=1;
                 
                     //删除除最后一个
                     if(index <= pngs.length-1 && index >= 0){
-                        setCurr(index);
+                        setCurr(index,false);
                     }
                     else{
                         //完全清空
@@ -423,7 +451,7 @@ function removePNG(index){
                         }
                         //删除最后一个
                         else{
-                            setCurr(index-1)
+                            setCurr(index-1,false)
                         }
                     }
                     
@@ -448,6 +476,10 @@ const PageServices = {
         nowliLength = 0;
         prevliLength = 0;
         COMPRESS_SAVE_BUTTON_STATE = 0;
+        addIndex = -1;
+        tempCounter = 0;
+        tempArray = [];
+        
 
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -477,6 +509,25 @@ const PageServices = {
         // dc.addEventListener("mouseout", unhighlight);//cancel);
         dc.addEventListener("drop", onFileDrop);
         
+        // var svg = d3.select("#canvas-svg-container")
+        // .append("svg");
+      
+        // var t = textures.paths()
+        // .d("woven")
+        // .lighter()
+        // .thicker()
+        // .stroke("rgba(0,0,0,0.1)")
+        // .strokeWidth(1);
+        
+        // svg.call(t);
+        
+        // svg.append("rect")
+        //     .attr("x", 0 )
+        //     .attr("y", 0)
+        //     .attr("width", 3000)
+        //     .attr("height", 3000)
+        //     .style("fill", t.url());
+
         window.addEventListener("resize", resize);
         resize();
         return new Promise((resolve, reject) => {
@@ -499,7 +550,7 @@ const PageServices = {
 
     moveQual:function(val) {  
         if(hasAdded){
-            downloadToSave()
+            downloadToCompress()
             qualValue = val;
         }
     },
@@ -533,7 +584,7 @@ const PageServices = {
 }
 
 var COMPRESS_SAVE_BUTTON_STATE = 0;
-function saveToDownload(){
+function compressToDownload(){
     if( COMPRESS_SAVE_BUTTON_STATE == 0){
         document.getElementById('compress-icon').setAttribute("class","icon-Magic icon-download---FontAwesome")
         document.getElementById('compress-btn').setAttribute("class","compress-btn download-all-btn")
@@ -543,7 +594,7 @@ function saveToDownload(){
 }
 
 
-function downloadToSave(){
+function downloadToCompress(){
     if(COMPRESS_SAVE_BUTTON_STATE == 1){
         document.getElementById('compress-icon').setAttribute("class","icon-Magic")
         document.getElementById('compress-btn').setAttribute("class","compress-btn")
@@ -596,7 +647,7 @@ function resetedAllAfter(){
             document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0);opacity: 0;")
             document.getElementById('reset-btn').setAttribute("style","")
             document.getElementById('eRNG').value = 500;
-            downloadToSave();
+            downloadToCompress();
         }, 250);
     });
 
@@ -617,7 +668,7 @@ function compressedAllAfter(){
     update()
     return new Promise((resolve, reject) => {
         setTimeout(function(){
-            saveToDownload();
+            compressToDownload();
             document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
             document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0);opacity: 0;")
             document.getElementById('compress-btn').setAttribute("style","")
@@ -637,7 +688,7 @@ function onFileDrop(e) {  cancel(e);
     var fls = e.dataTransfer? e.dataTransfer.files : e.target.files;
     for(var i=0; i<fls.length; i++) {
 
-        console.log(fls[i].name)
+        // console.log(fls[i].name)
         var f = fls[i];
         var r = new FileReader();
         r._file = f;
@@ -649,9 +700,12 @@ function onFileDrop(e) {  cancel(e);
 
     nowliLength += fls.length;
 }			
-function dropLoaded(e) {  addPNG(e.target.result, e.target._file.name); 
+
+function dropLoaded(e) {  
+    addIndex++;
+    addPNG(e.target.result, e.target._file.name,addIndex); 
     return new Promise((resolve, reject) => {      
-        saveToDownload();    
+        compressToDownload();    
         console.log('loaded');
     });
 }
@@ -679,7 +733,7 @@ function whichTransitionEvent(){
 function highlight  (e) {cancel(e); 
 
         dragCounter++;
-        console.log(dragCounter)
+        // console.log(dragCounter)
         //console.log(e.type)
         document.getElementById("window-area").setAttribute("style","opacity:1;visibility:visible");
         document.getElementById("window-border").style.border = "3px dashed #848484";
@@ -698,7 +752,7 @@ function highlightAnimCallback(event) {
 
 function unhighlight(e) {cancel(e); 
         dragCounter--;
-        console.log(dragCounter)
+        // console.log(dragCounter)
         if (dragCounter == 0) { 
             
             document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
@@ -740,7 +794,6 @@ function updateResize(){
     cnv.width = pw;  cnv.height = ph;
     var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
     cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
-    
     // Update Current Image When Compressing
     if(hasAdded){
         var p = pngs[curr], l = p.width*p.height*4;					
@@ -849,151 +902,3 @@ function moveCurr(curr)
 }
 
 module.exports = PageServices;
-
-
-
-// function recompute(i) {
-//     var p = pngs[i];
-//     p.ndata = UPNG.encode([p.orgba.buffer], p.width, p.height, cnum);
-//     if(p.ndata.byteLength > p.odata.byteLength) p.ndata = p.odata;
-//     var img  = UPNG.decode(p.ndata);
-//     p.nrgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
-//     console.log('recomputed')
-// }
-
-
-// function updateValue(){
-//     var tos = 0, tns = 0;
-
-//     // Left Value Update
-//     for(var i=0; i<=pngs.length; i++)
-//     {
-//         var p = pngs[i];
-        
-//         //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
-        
-//         var iname, os, ns, cont, pw=0, ph=0;
-//         if(i<pngs.length) {  
-//             iname=p.name;  
-//             os = p.odata.byteLength;  
-//             ns = p.ndata.byteLength;  
-//             tos+=os;  
-//             tns+=ns;  
-//             cont=list;  
-//             pw=p.width;  
-//             ph=p.height;  
-//         }
-//         else             
-//         {  
-//             iname="Total:";  
-//             os = tos;  
-//             ns = tns;  
-//             cont = totl;  
-//         }
-        
-//         var cnt = "<b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b>";
-
-//         document.querySelectorAll("#compressed-size")[i].innerHTML = toKB(ns)
-//         document.querySelectorAll("#compressed-percentage")[i].innerHTML = (100*(ns-os)/os).toFixed(1)+" %", 5
-
-//     }
-
-//     // Canvas Size
-//     var dpr = getDPR();
-//     var iw = window.innerWidth-2;
-
-//     //Changed to fixed Value;
-//     // var pw = 720; //Math.floor(Math.min(iw-500, iw/2)*dpr)
-//     // var ph = 720; //Math.floor(limitedvih*dpr)
-//     var pw = Math.floor(limitedviw*dpr);
-//     var ph = Math.floor(limitedvih*dpr);
-        
-
-//     // Update Current Image
-//     if(curr!=-1) {
-//         var p = pngs[curr], l = p.width*p.height*4;					
-//         var imgd = ctx.createImageData(p.width, p.height);
-//         for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
-//         ctx.clearRect(0,0,cnv.width,cnv.height);
-//         var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        
-//         if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-//         if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
-        
-//         var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-//         var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-//         ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
-//     }
-
-// }
-
-
-// ############# WORKER EXAMPLE #############
-
-// ### Classic ### 
-// var worker = new Worker('./js/worker.js');
-
-// console.log('MAIN TASK: ', 'running');
-
-
-// //发送数据
-// worker.postMessage('Hello Worker, I am main.js');
-
-// // 接受数据
-// worker.addEventListener('message', function (e) {
-    
-//     console.log('MAIN RECEIVE: ',e.data);
-
-
-//     return new Promise((resolve, reject) => {
-//         worker.terminate();
-//         console.log('WORKER TERMINATED');
-//     });
-    
-// });
-
-
-// worker.postMessage(addSummary(2,3));
-
-// function addSummary(a,b){
-//     return (a+b).toString();
-// }
-
-
-// ### Tiny Worker ###
-//console.log('MAIN PROCESS: ', 'running');
-
-// var Worker = require("tiny-worker");
-// var worker = new Worker("./js/worker.js");
-
-// var worker = new Worker(function () {
-//     console.log('WORKER TASK: ', 'running');
-//     self.onmessage = function (e) {
-//         console.log('WORKER RECEIVE: ', e.data);
-
-//         return new Promise((resolve, reject) => {
-//             // 发送数据事件
-//             postMessage('Hello main, I am worker.js');
-//             console.log('WORKER Promise Worked');
-//         });
-//     };
-// });
-
- 
-// worker.onmessage = function (e) {
-//     console.log('MAIN RECEIVE: ',e.data);
-
-//     return new Promise((resolve, reject) => {
-//         worker.terminate();
-//         console.log('WORKER TERMINATED');
-//     });
-// };
- 
-// worker.postMessage("Hello Worker, I am main.js!");
-
-
-// ### Parallel ###
-//var para = new Parallel(UPNG.encode([p.orgba.buffer], p.width, p.height, cnum));
-//console.log(para.data); // prints [1, 2, 3, 4, 5]
-
-// ############################################

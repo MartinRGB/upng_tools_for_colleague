@@ -8,6 +8,7 @@ onmessage = function (e) {
   
   var buff;
   var name;
+  var thisIndex;
   var returnpng;
 
 
@@ -16,6 +17,7 @@ onmessage = function (e) {
 
     buff = e.data.buff;
     name = e.data.name;
+    thisIndex = e.data.num;
 
     // 接受完数据后
     resolve()
@@ -36,7 +38,8 @@ onmessage = function (e) {
     }).then(function(){
       // 发送数据
       postMessage({
-        png:returnpng
+        png:returnpng,
+        index:thisIndex
       });
     });
   });
