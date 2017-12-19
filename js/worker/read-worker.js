@@ -1,6 +1,6 @@
 
 
-importScripts("pako-local.js","UPNG-local.js")
+importScripts("../util/pako-local.js","../util/UPNG-local.js")
 // console.log('WORKER TASK: ', 'running');
 
 //接受数据

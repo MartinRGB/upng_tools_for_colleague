@@ -2,17 +2,16 @@
 
 // ############ TODO ############
 // DeleteAnimation 优化
-// Download -> Compress
-// ADDPNG 读取优化
-// ADDPNG 选中顺序
-// ADDPNG 加载顺序
 // ##############################
 
-// const UPNG = require('./js/UPNG.js')
-const UZIP = require('./js/UZIP.js')
+const UZIP = require('./js/util/UZIP-local.js')
 var Promise = require('promise');
-var textures = require('textures');
-var d3 = require("d3");
+const fs = require('fs')
+const path = require('path');
+
+const Viewer = require('./js/util/viewer-local.js')
+
+
 
 var pngs = [];
 var curr = -1;
@@ -26,6 +25,8 @@ var hasAdded = false;
 var qualValue = 500;
 var shouldListAnim = false;
 var windowEl;
+var imgEl;
+var imgContainer;
 var transitionEvent;
 
 // List Length
@@ -46,7 +47,8 @@ var addIndex = -1;
 var tempCounter = 0;
 var tempArray = [];
 
-
+// ######################## I/O ########################
+// ###### save ######
 function save(buff, path)
 {
     if(pngs.length==0) return;
@@ -59,8 +61,7 @@ function save(buff, path)
     a.click();
     document.body.removeChild(a);
 }
-
-    
+// ###### loadUrl ######
 function loadURL(path, resp)
 {
     var request = new XMLHttpRequest();
@@ -73,175 +74,9 @@ function loadURL(path, resp)
 function urlLoaded(e) {  addIndex++;addPNG(e.target.response, e.target._fname);  }
 
 
-function setCurr(nc,isAdd) {  
-    if(isAdd){
-        curr=nowliLength - 1;  
-    }
-    else{
-        curr=nc;  
-    }
-
-    // curr=nc; 
-    ioff={x:0,y:0};  
-
-    update()
-
-    // ### 搞一个 Counter 最后添加
-    // console.log(nc,"nc")
-
-    // Add List Anim
-    return new Promise((resolve, reject) => {
-
-        if(shouldListAnim && hasAdded){
-            
-            return new Promise((resolve, reject) => {
-                console.log('list animation');
-
-                var addArray = document.querySelectorAll("#list #image-li");
-
-                //开启底部动画
-                if(lbottom.offsetHeight != 203+1){
-                    lbottom.setAttribute("style", "height:"+(203)+"px;");
-                    lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
-                }
-
-
-                // 从上一次动画完成处开始动画，到最大长度
-                var addPNGStartIndex = 0 + prevliLength;
-                
-                function myLoop () {           //  create a loop function
-                    setTimeout(function () {    //  call a 3s setTimeout when the loop is called
-
-                        if(addArray[addPNGStartIndex] != null){
-                            addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
-                        }
-                        addPNGStartIndex++;                     //  increment the counter
-                        if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
-                            myLoop();             //  ..  again which will trigger another 
-                        }                        //  ..  setTimeout()
-                    }, 50)
-
-                }
-
-                myLoop();    
-
-                // 等所有动画执行后，开启切换
-                setTimeout(function () { 
-                    prevliLength = nowliLength;
-                }, 50*(nowliLength - prevliLength));
-
-            });
-        }
-    });  
-}
-
-
-function update()
-{
-
-    if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
-    if(curr == -1){
-        list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><img src=\"./asset/art.svg\" class=\"empty-img\"><span class=\"empty-text\">Please add PNG</span></div><!-- <span>Drag PNG files here!</span> --></div></div>"
-    }
-    var tos = 0, tns = 0;
-
-    // Left Value Update
-    for(var i=0; i<=pngs.length; i++)
-    {
-
-        var p = pngs[i];
-        var li = document.createElement("p");  
-        li.setAttribute("class", "item"+(i==curr?" active":"")); 
-
-        li._indx=i;
-        li.id='image-li'
-
-        //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
-
-        var iname, os, ns, cont, pw=0, ph=0;
-        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);
-
-            //做列表动画
-            if(shouldListAnim){
-                //如果不是新添加的
-                if(i<prevliLength){
-                    li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
-                }
-                //如果是新添加的
-                else{
-                    li.setAttribute("style","opacity: 0;transform: scale(0.6) translateY(60px);");
-                }
-            }
-            //不做列表动画
-            else{
-                li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
-            }
-        }
-        else{  
-            iname="Total:";  os = tos;  ns = tns;  cont = totl;  
-        }
-        
-        var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
-        
-        //toBlock("➜",2)
-        cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
-        + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span></div></div>");
-        if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
-        li.innerHTML = cnt;
-        var btncontainer = document.createElement("div");
-        btncontainer.id="btn-container";
-        var btn = document.createElement("button");   btn.innerHTML = "<span class=\"icon-download---FontAwesome\"></span><span style=\"margin-left: 5px;font-size: 16px;font-weight: bold;\"> SAVE</span>";  
-        if(i<pngs.length) li.appendChild(btncontainer);
-        btncontainer.appendChild(btn);
-        
-        if(pngs.length!=0)  cont.appendChild(li);
-
-    }
-
-    // Canvas Size
-    var dpr = getDPR();
-    var iw = window.innerWidth-2;
-
-    //Changed to fixed value
-    // var pw = 720;  //Math.floor(Math.min(iw-500, iw/2)*dpr)
-    // var ph = 720;  //Math.floor(limitedvih*dpr)
-    var pw = Math.floor(limitedviw*dpr);
-    var ph = Math.floor(limitedvih*dpr);
-        
-    cnv.width = pw;  cnv.height = ph;
-    // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
-    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
-    cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
-    // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
-    
-    
-    // Update Current Image When Compressing
-    if(curr!=-1) {
-        var p = pngs[curr], l = p.width*p.height*4;					
-        var imgd = ctx.createImageData(p.width, p.height);
-        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
-        ctx.clearRect(0,0,cnv.width,cnv.height);
-        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        
-        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
-        
-        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
-    }
-
-    if(curr!=-1){
-        hasAdded = true;
-    }
-    else{
-        hasAdded = false;
-    }
-
-}
-
+// ######################## Item Event ########################
+// ###### click ######
 function itemClick(e) {  
-
 
     //不做列表添加动画
     shouldListAnim = false;
@@ -253,105 +88,7 @@ function itemClick(e) {
         removePNG(index);
     }
 }
-
-
-
-function multiThreadRead(buff,name,index){
-
-    var worker = new Worker('./js/read-worker.js');
-
-    //发送数据
-    worker.postMessage({
-        buff:buff,
-        name:name,
-        num:index
-    });
-    
-    // 接受数据
-    worker.addEventListener('message', function (e) {
-        
-        // 一定要确保销毁
-        worker.terminate();
-
-        var mIndex = e.data.index;
-        var mPng = e.data.png;
-        //只在 Array 头几个 index 添加新添加的
-        tempArray[mIndex-prevliLength]=mPng;
-
-
-        tempCounter++;
-        // console.log("nowliLength",nowliLength - prevliLength)
-        // console.log("tempCounter",tempCounter)
-
-        if(tempCounter == nowliLength - prevliLength){
-
-            return new Promise((resolve, reject) => {
-                pngs.push.apply(pngs,tempArray);  
-                resolve()
-            }).then(function(){
-                tempArray = [];
-                tempCounter = 0; 
-                //只重新计算添加的
-                for(var i=prevliLength; i<pngs.length; i++){
-                    multiThreadRecompute(i,setCurr,afterAdd)
-                }
-            })
-
-        }
-        
-    });
-
-}
-
-
-
-function multiThreadRecompute(i,func,callback){
-    var p = pngs[i]
-    var worker = new Worker('./js/recompute-worker.js');
-
-    
-    //发送数据
-    worker.postMessage({
-        img:p,
-        num:cnum,
-        index:i
-    });
-    
-    // 接受数据
-    worker.addEventListener('message', function (e) {
-        
-
-        console.log("worker finished,num is ",i)
-        // 一定要确保销毁
-        worker.terminate();
-    
-        return new Promise((resolve, reject) => {
-
-            p.ndata = e.data.pndata;
-            p.nrgba = e.data.pnrgba;
-            shouldListAnim = true;
-            resolve()
-            func(i,true);
-            // console.log('WORKER TERMINATED');
-        }).then(function(){
-
-            //最后一个线程完成后，才执行
-            compressCounter++;
-
-
-            console.log("compressCounter is ", compressCounter )
-            console.log("nowliLength is ", nowliLength )
-            if(compressCounter == nowliLength){
-
-                callback()
-            }
-
-        });
-        
-    });
-
-}
-
+// ###### add ######
 function addPNG(buff, name,index)
 {
 
@@ -370,9 +107,7 @@ function addPNG(buff, name,index)
 
 }
 
-function beforeAdd(i){
-
-}
+function beforeAdd(i){}
 
 function afterAdd(){
     document.getElementById("window-area").setAttribute("style","opacity:0;visibility:hidden;");
@@ -388,16 +123,14 @@ function afterAdd(){
 
     });
 }
-
-
+// ###### select branch ######
 function selectPNG(index,e){
-
     // Select Item;
     setCurr(index,false);  
     var p=pngs[index];  
     if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
 }
-
+// ###### remove branch ######
 function removePNG(index){
     // Delete Animation
     var addArray = document.querySelectorAll("#list #image-li");
@@ -462,9 +195,6 @@ function removePNG(index){
              }, 500)
 }
 
-function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
-function toBlock(txt, w) {  var st = w ? " style=\"width:"+w+"em;\"":"";  return "<span"+st+">"+txt+"</span>";  }
-
 const PageServices = {
 
 
@@ -479,16 +209,22 @@ const PageServices = {
         addIndex = -1;
         tempCounter = 0;
         tempArray = [];
+        cleanTemp();
         
-
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
         main = document.getElementById("main");  
         list = document.getElementById("list");
         totl = document.getElementById("totl");
+        windowEl = document.getElementById("window-area");
+        imgEl  = document.getElementById("img-element");
+        imgContainer = document.getElementById("img-container");
+
+        // imgEl.src = "./asset/grid.png"
+
+        
         cnv = document.getElementById("cnv");  ctx = cnv.getContext("2d");
         cnv.addEventListener("mousedown", onMD, false);
-        
         
         fopn = document.createElement("input");  
         fopn.setAttribute("type", "file");
@@ -497,10 +233,9 @@ const PageServices = {
         fopn.setAttribute("style", "display:none");
         fopn.setAttribute("multiple","");
         
-        var dc = document.body;
-        
-        windowEl = document.getElementById("window-area");
         transitionEvent = whichTransitionEvent();
+
+        var dc = document.body;
 
         dc.addEventListener("dragover", cancel); //cancel
         dc.addEventListener("dragenter", highlight);//cancel);
@@ -509,25 +244,6 @@ const PageServices = {
         // dc.addEventListener("mouseout", unhighlight);//cancel);
         dc.addEventListener("drop", onFileDrop);
         
-        // var svg = d3.select("#canvas-svg-container")
-        // .append("svg");
-      
-        // var t = textures.paths()
-        // .d("woven")
-        // .lighter()
-        // .thicker()
-        // .stroke("rgba(0,0,0,0.1)")
-        // .strokeWidth(1);
-        
-        // svg.call(t);
-        
-        // svg.append("rect")
-        //     .attr("x", 0 )
-        //     .attr("y", 0)
-        //     .attr("width", 3000)
-        //     .attr("height", 3000)
-        //     .style("fill", t.url());
-
         window.addEventListener("resize", resize);
         resize();
         return new Promise((resolve, reject) => {
@@ -565,10 +281,6 @@ const PageServices = {
     saveAll:function ()
     {
 
-        // Original
-        // var obj = {};
-        // for(var i=0; i<pngs.length; i++) obj[pngs[i].name] = new Uint8Array(pngs[i].ndata);
-        // save(UZIP.encode(obj).buffer, "compressed_images.zip");
 
         if(COMPRESS_SAVE_BUTTON_STATE == 0){
             compressAll(compressedAllBefore,compressedAllAfter);
@@ -582,6 +294,9 @@ const PageServices = {
     }
 
 }
+
+
+// ######################## Button Event ########################
 
 var COMPRESS_SAVE_BUTTON_STATE = 0;
 function compressToDownload(){
@@ -627,6 +342,31 @@ function compressAll(beforeCompress,afterCompress){
     });
 }
 
+
+function compressedAllBefore(){
+    if(qualValue>1000) cnum=0;
+    else cnum = Math.max(2, Math.round(500*qualValue/1000));
+    compressCounter = 0;
+
+    document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
+    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0.75);opacity: 1;")
+    document.getElementById('compress-btn').setAttribute("style","cursor:progress;")	
+}
+    
+function compressedAllAfter(){
+    update()
+    return new Promise((resolve, reject) => {
+        setTimeout(function(){
+            compressToDownload();
+            document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
+            document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0);opacity: 0;")
+            document.getElementById('compress-btn').setAttribute("style","")
+        }, 250);
+    });
+}
+
+// ###### Reset ######
+
 function resetedAllBefore(){
 
     cnum = 256;
@@ -653,37 +393,42 @@ function resetedAllAfter(){
 
 }
 
-function compressedAllBefore(){
 
-    if(qualValue>1000) cnum=0;
-    else cnum = Math.max(2, Math.round(500*qualValue/1000));
-    compressCounter = 0;
-
-    document.getElementById('compress-icon').setAttribute("style","transform: scale(0.75);opacity:0;")
-    document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0.75);opacity: 1;")
-    document.getElementById('compress-btn').setAttribute("style","cursor:progress;")	
-}
-
-function compressedAllAfter(){
-    update()
-    return new Promise((resolve, reject) => {
-        setTimeout(function(){
-            compressToDownload();
-            document.getElementById('compress-icon').setAttribute("style","transform: scale(1);opacity:1;")
-            document.getElementById('compress-loading').setAttribute("style","transform:translate(48px,5px) scale(0);opacity: 0;")
-            document.getElementById('compress-btn').setAttribute("style","")
-        }, 250);
-    });
-}
-
-// ###### Move Canvas Listener ######
+// ######################## Move Canvas Event ########################
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
-function onMM(e) {ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;
-    moveCurr(curr);  
-}
+function onMM(e) {ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;moveCurr(curr);}
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
 
-// ###### File Drop Data ######
+
+function moveCurr(curr)
+{
+
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+
+
+    if(curr!=-1) {
+        var p = pngs[curr], l = p.width*p.height*4;		
+        var imgd = ctx.createImageData(p.width, p.height);
+        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        ctx.clearRect(0,0,cnv.width,cnv.height);
+        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        
+        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        
+        //center
+        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+    }
+
+}
+
+// ######################## Drag&Drop Event ########################
 function onFileDrop(e) {  cancel(e);
     var fls = e.dataTransfer? e.dataTransfer.files : e.target.files;
     for(var i=0; i<fls.length; i++) {
@@ -710,28 +455,10 @@ function dropLoaded(e) {
     });
 }
 
-// ###### CSS Transition Finished CallBack ######
-function whichTransitionEvent(){
-    var t,
-        el = document.createElement("fakeelement");
-  
-    var transitions = {
-      "transition"      : "transitionend",
-      "OTransition"     : "oTransitionEnd",
-      "MozTransition"   : "transitionend",
-      "WebkitTransition": "webkitTransitionEnd"
-    }
-  
-    for (t in transitions){
-      if (el.style[t] !== undefined){
-        return transitions[t];
-      }
-    }
-}
 
 // ###### File Drop Animation ######
 function highlight  (e) {cancel(e); 
-
+    
         dragCounter++;
         // console.log(dragCounter)
         //console.log(e.type)
@@ -742,7 +469,7 @@ function highlight  (e) {cancel(e);
         document.getElementById("window-text").style.color = "#909090";
         document.getElementById("canvas1-bezier").setAttribute("style","fill:#8c8c8c;");
         windowEl.addEventListener(transitionEvent, highlightAnimCallback);
-    
+        
 }
 function highlightAnimCallback(event) {
     windowEl.removeEventListener(transitionEvent, highlightAnimCallback);
@@ -769,9 +496,11 @@ function unhighlightAnimCallback(event) {
     windowEl.removeEventListener(transitionEvent, unhighlightAnimCallback);
 }
 
-// ###### Resize Event ######
-function resize(e) {  
+function cancel(e) { e.stopPropagation(); e.preventDefault(); }
 
+// ######################## Resize Event ########################
+function resize(e) {  
+    
     vih = window.innerHeight;
     viw = window.innerWidth - 480;
     limitedvih = Math.max(720,vih)
@@ -779,11 +508,7 @@ function resize(e) {
 
     updateResize()
 }
-
-function getDPR() {  return window["devicePixelRatio"] || 1;  }
-function cancel(e) { e.stopPropagation(); e.preventDefault(); }
-
-// Some Optimize Functions
+    
 function updateResize(){
     // Canvas Size
     var dpr = getDPR();
@@ -815,6 +540,409 @@ function updateResize(){
     
 }
 
+
+
+
+
+function setCurr(nc,isAdd) {  
+    //添加选最后一个
+    if(isAdd){
+        curr=nowliLength - 1;  
+    }
+    //其余选选择项或删除项
+    else{
+        curr=nc;  
+    }
+
+    ioff={x:0,y:0};  
+
+    update()
+
+    // ### 搞一个 Counter 最后添加
+    // console.log(nc,"nc")
+
+    // Add List Anim
+    return new Promise((resolve, reject) => {
+
+        if(shouldListAnim && hasAdded){
+            
+            return new Promise((resolve, reject) => {
+                console.log('list animation');
+
+                var addArray = document.querySelectorAll("#list #image-li");
+
+                //开启底部动画
+                if(lbottom.offsetHeight != 203+1){
+                    lbottom.setAttribute("style", "height:"+(203)+"px;");
+                    lmiddle.setAttribute("style", "height:calc(100% - (106px + 203px));");
+                }
+
+
+                // 从上一次动画完成处开始动画，到最大长度
+                var addPNGStartIndex = 0 + prevliLength;
+                
+                function myLoop () {           //  create a loop function
+                    setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+
+                        if(addArray[addPNGStartIndex] != null){
+                            addArray[addPNGStartIndex].setAttribute("style", "opacity: 1;transform: scale(1) translateY(0px)");
+                        }
+                        addPNGStartIndex++;                     //  increment the counter
+                        if (addPNGStartIndex < addArray.length) {            //  if the counter < 10, call the loop function
+                            myLoop();             //  ..  again which will trigger another 
+                        }                        //  ..  setTimeout()
+                    }, 50)
+
+                }
+
+                myLoop();    
+
+                // 等所有动画执行后，开启切换
+                setTimeout(function () { 
+                    prevliLength = nowliLength;
+                }, 50*(nowliLength - prevliLength));
+
+            });
+        }
+    });  
+}
+
+
+
+function multiThreadRead(buff,name,index){
+    
+        var worker = new Worker('./js/worker/read-worker.js');
+    
+        //发送数据
+        worker.postMessage({
+            buff:buff,
+            name:name,
+            num:index
+        });
+        
+        // 接受数据
+        worker.addEventListener('message', function (e) {
+            
+            // 一定要确保销毁
+            worker.terminate();
+    
+            var mIndex = e.data.index;
+            var mPng = e.data.png;
+            //只在 Array 头几个 index 添加新添加的
+            tempArray[mIndex-prevliLength]=mPng;
+    
+    
+            tempCounter++;
+            // console.log("nowliLength",nowliLength - prevliLength)
+            // console.log("tempCounter",tempCounter)
+    
+            if(tempCounter == nowliLength - prevliLength){
+    
+                return new Promise((resolve, reject) => {
+                    pngs.push.apply(pngs,tempArray);  
+                    resolve()
+                }).then(function(){
+                    tempArray = [];
+                    tempCounter = 0; 
+                    //只重新计算添加的
+                    for(var i=prevliLength; i<pngs.length; i++){
+                        multiThreadRecompute(i,setCurr,afterAdd)
+                    }
+                })
+    
+            }
+            
+        });
+    
+    }
+    
+    
+    
+    function multiThreadRecompute(i,func,callback){
+        var p = pngs[i]
+        var worker = new Worker('./js/worker/recompute-worker.js');
+    
+        
+        //发送数据
+        worker.postMessage({
+            img:p,
+            num:cnum,
+            index:i
+        });
+        
+        // 接受数据
+        worker.addEventListener('message', function (e) {
+            
+    
+            console.log("worker finished,num is ",i)
+            // 一定要确保销毁
+            worker.terminate();
+        
+            return new Promise((resolve, reject) => {
+    
+                p.ndata = e.data.pndata;
+                p.nrgba = e.data.pnrgba;
+
+
+
+
+                shouldListAnim = true;
+                resolve()
+                func(i,true);
+                // console.log('WORKER TERMINATED');
+            }).then(function(){
+    
+                //最后一个线程完成后，才执行
+                compressCounter++;
+    
+    
+                console.log("compressCounter is ", compressCounter )
+                console.log("nowliLength is ", nowliLength )
+                if(compressCounter == nowliLength){
+                    callback()
+                }
+    
+            });
+            
+        });
+    
+    }
+
+function update()
+{
+
+    if(curr!=-1) {  list.innerHTML = "";  totl.innerHTML = "";  }
+    if(curr == -1){
+        list.innerHTML = "<div id=\"drag-container\"style=\"font-size:1.3em; padding:1em; text-align:center;height:100%;display:table;\"><div id=\"drag-area\" onclick=\"PageServices.showOpenDialog()\"><img src=\"./asset/art.svg\" class=\"empty-img\"><span class=\"empty-text\">Please add PNG</span></div><!-- <span>Drag PNG files here!</span> --></div></div>"
+    }
+    var tos = 0, tns = 0;
+
+    var fileName;
+
+    // Left Value Update
+    for(var i=0; i<=pngs.length; i++)
+    {
+
+        var p = pngs[i];
+        var li = document.createElement("p");  
+        li.setAttribute("class", "item"+(i==curr?" active":"")); 
+
+        li._indx=i;
+        li.id='image-li'
+
+        //var btn = document.createElement("button");   btn.innerHTML = "X";  if(i<pngs.length) li.appendChild(btn);
+
+        var iname, os, ns, cont, pw=0, ph=0;
+        if(i<pngs.length) {  iname=p.name;  os = p.odata.byteLength;  ns = p.ndata.byteLength;  tos+=os;  tns+=ns;  cont=list;  pw=p.width;  ph=p.height;li.addEventListener("click", itemClick, false);
+
+            //做列表动画
+            if(shouldListAnim){
+                //如果不是新添加的
+                if(i<prevliLength){
+                    li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
+                }
+                //如果是新添加的
+                else{
+                    li.setAttribute("style","opacity: 0;transform: scale(0.6) translateY(60px);");
+                }
+            }
+            //不做列表动画
+            else{
+                li.setAttribute( "style", "opacity: 1;transform: scale(1) translateY(0px)");
+            }
+        }
+        else{  
+            iname="Total:";  os = tos;  ns = tns;  cont = totl;  
+        }
+        
+        var cnt = "<div id=\"info-container\"><div id=\"title-container\"><b class=\"fname\" title=\""+pw+" x "+ph+"\">"+iname+"</b></div><div id=\"meta-container\"> ";
+
+        
+        //toBlock("➜",2)
+        cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
+        + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span></div></div>");
+        if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
+        li.innerHTML = cnt;
+        var btncontainer = document.createElement("div");
+        btncontainer.id="btn-container";
+        var btn = document.createElement("button");   btn.innerHTML = "<span class=\"icon-download---FontAwesome\"></span><span style=\"margin-left: 5px;font-size: 16px;font-weight: bold;\"> SAVE</span>";  
+        if(i<pngs.length) li.appendChild(btncontainer);
+        btncontainer.appendChild(btn);
+        
+        if(pngs.length!=0)  cont.appendChild(li);
+
+    }
+
+    // Canvas Size
+    var dpr = getDPR();
+    var iw = window.innerWidth-2;
+
+    //Changed to fixed value
+    // var pw = 720;  //Math.floor(Math.min(iw-500, iw/2)*dpr)
+    // var ph = 720;  //Math.floor(limitedvih*dpr)
+    var pw = Math.floor(limitedviw*dpr);
+    var ph = Math.floor(limitedvih*dpr);
+        
+    cnv.width = pw;  cnv.height = ph;
+    // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
+    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
+    cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
+    // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
+    
+    
+    // Update Current Image When Compressing
+    if(curr!=-1) {
+        // canvasWay;
+        // var p = pngs[curr], l = p.width*p.height*4;		
+        // var imgd = ctx.createImageData(p.width, p.height);
+        // for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
+        // ctx.clearRect(0,0,cnv.width,cnv.height);
+        // var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        // if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        // if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
+        // var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        // var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+        // ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
+
+        // imageWay;
+        var p = pngs[curr]
+        // var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
+        // if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
+        // if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();        
+        // var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
+        // var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
+
+        console.log("width",p.width);
+        console.log("height",p.height)
+        readWriteFile(p.ndata,p.name,p.width,p.height)
+        // console.log("cx",cx/2)
+        // console.log("cy",cy/2)
+        // console.log("leftx",limitedviw - cx)
+        // console.log("lefty",limitedvih - cy)
+        // imgEl.setAttribute("style", "width:"+(limitedviw - cx)+"px; height:"+(limitedvih - cy)+"px;transform:translate("+(cx/2)+"px,"+(cy/2) + "px);");
+
+    }
+
+    if(curr!=-1){
+        hasAdded = true;
+    }
+    else{
+        hasAdded = false;
+    }
+
+}
+
+//需要 Create 一个 Temp PlaceHolder
+
+const tempDic = "./asset/temp"
+
+
+function cleanTemp(){
+
+    fs.readdir(tempDic, (err, files) => {
+        if (err) throw err;
+        
+        for (const file of files) {
+            fs.unlink(path.join(tempDic, file), err => {
+            if (err) throw err;
+            });
+        }
+    });
+}
+
+function readWriteFile(req,name,width,height) {
+        const prefix = name.replace(/\.[^/.]+$/, "");
+        const extension = name.split('.').pop();
+        const tempFileName = 'tmp_' + prefix + '_' + new Date().getTime() + '.' + extension;
+        const tempDst = tempDic + '/' + tempFileName
+
+        // Viewer创立前必须 销毁
+        if(document.getElementById('img-element').viewer){
+            document.getElementById('img-element').viewer.destroy();
+        }
+
+        console.log(tempDst);
+
+        var myFirstPromise = new Promise(function(resolve, reject){
+
+            var data =  new Buffer(req);
+            fs.writeFile(tempDst, data, 'binary', function (err) {
+                if (err) {
+                    console.log("There was an error writing the image")
+                }
+                else {
+                    console.log('File was written to ' + tempDst);
+    
+                }
+            });
+            setTimeout(function(){
+                resolve()
+            }, 50);
+    
+        });
+        
+        myFirstPromise.then(function(){
+            console.log("promised",tempDst);
+
+            var secondPromise = new Promise(function(resolve, reject){
+
+                //需要去掉
+                imgEl.src = tempDst;
+
+
+
+                //需要修改 Viewer.jS
+                const viewer = new Viewer(document.getElementById('img-element'), {
+                    url:tempDst,
+                    inline: true,
+                    fullscreen:true
+                },width,height);
+
+                setTimeout(function(){
+                    resolve()
+                }, 350);
+            })
+            
+            secondPromise.then(function(){
+
+                console.log("Trigger")
+
+            })
+
+        });
+};
+
+
+
+
+module.exports = PageServices;
+
+
+
+// ######################## Util ########################
+// ###### CSS Transition CallBack ######
+function whichTransitionEvent(){
+    var t,
+        el = document.createElement("fakeelement");
+  
+    var transitions = {
+      "transition"      : "transitionend",
+      "OTransition"     : "oTransitionEnd",
+      "MozTransition"   : "transitionend",
+      "WebkitTransition": "webkitTransitionEnd"
+    }
+  
+    for (t in transitions){
+      if (el.style[t] !== undefined){
+        return transitions[t];
+      }
+    }
+}
+// ###### GetDPR ######
+function getDPR() {  return window["devicePixelRatio"] || 1;  }
+// ###### Deal With String ######
+function toKB(n) {  return (n/1024).toFixed(1)+" KB";  }
+function toBlock(txt, w) {  var st = w ? " style=\"width:"+w+"em;\"":"";  return "<span"+st+">"+txt+"</span>";  }
 // ###### Update Curr ListData & Canvas Data ######
 function updateCurr(i){
     var tos = 0, tns = 0;
@@ -871,34 +999,3 @@ function updateCurr(i){
 
     }
 }
-
-// ###### Move Curr Canvas Data ######
-function moveCurr(curr)
-{
-
-    // Canvas Size
-    var dpr = getDPR();
-    var iw = window.innerWidth-2;
-    var pw = Math.floor(limitedviw*dpr);
-    var ph = Math.floor(limitedvih*dpr);
-
-
-    if(curr!=-1) {
-        var p = pngs[curr], l = p.width*p.height*4;		
-        var imgd = ctx.createImageData(p.width, p.height);
-        for(var i=0; i<l; i++) imgd.data[i] = p.nrgba[i];
-        ctx.clearRect(0,0,cnv.width,cnv.height);
-        var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        
-        if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-        if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();
-        
-        //center
-        var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-        var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-        ctx.putImageData(imgd,Math.round(cx), Math.round(cy));
-    }
-
-}
-
-module.exports = PageServices;

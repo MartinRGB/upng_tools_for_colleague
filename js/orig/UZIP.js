@@ -2,7 +2,6 @@
 
 var UZIP = {};
 
-
 UZIP.parse = function(data)	// Uint8Array
 {
 	var bin = UZIP.bin, offset = 0, out = {};
