@@ -8,10 +8,7 @@ const UZIP = require('./js/util/UZIP-local.js')
 var Promise = require('promise');
 const fs = require('fs')
 const path = require('path');
-
 const Viewer = require('./js/util/viewer-local.js')
-
-
 
 var pngs = [];
 var curr = -1;
@@ -51,6 +48,7 @@ var tempArray = [];
 // ###### save ######
 function save(buff, path)
 {
+
     if(pngs.length==0) return;
     var data = new Uint8Array(buff);
     var a = document.createElement( "a" );
@@ -82,7 +80,13 @@ function itemClick(e) {
     shouldListAnim = false;
     var index = e.currentTarget._indx; 
     if(e.target.innerHTML != '✖'){
-        selectPNG(index,e)
+        if(index !=curr){
+            selectPNG(index,e)
+        }
+        else{
+            var p = pngs[index];
+            if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
+        }
     }
     else{
         removePNG(index);
@@ -99,7 +103,6 @@ function addPNG(buff, name,index)
     }
     
     return new Promise((resolve, reject) => {
-
         compressCounter = prevliLength;
         multiThreadRead(buff,name,index);
     });
@@ -126,8 +129,10 @@ function afterAdd(){
 // ###### select branch ######
 function selectPNG(index,e){
     // Select Item;
+    console.log('select')
     setCurr(index,false);  
     var p=pngs[index];  
+    console.log(e.target.tagName)
     if(e.target.tagName=="BUTTON") save(p.ndata, p.name); 
 }
 // ###### remove branch ######
@@ -180,6 +185,9 @@ function removePNG(index){
                                 lmiddle.setAttribute("style", "height:calc(100% - (106px + 162px));");
                             }
                             totl.innerHTML = "";
+                            if(document.getElementById('img-container').viewer){
+                                document.getElementById('img-container').viewer.destroy();
+                            }
             
                         }
                         //删除最后一个
@@ -201,6 +209,10 @@ const PageServices = {
     Go:function()
     {
 
+
+        // console.log(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'))
+        // console.log(process.env.HOME)
+        // console.log(process.platform)
         hasAdded = false;
         shouldListAnim = false;
         nowliLength = 0;
@@ -209,7 +221,11 @@ const PageServices = {
         addIndex = -1;
         tempCounter = 0;
         tempArray = [];
-        cleanTemp();
+        hasCreatedFolder = false;
+        if(fs.existsSync(tempDic)){
+            cleanTemp(tempDic);
+        }
+        mkdirSync(tempDic)
         
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -222,9 +238,10 @@ const PageServices = {
 
         // imgEl.src = "./asset/grid.png"
 
-        
-        cnv = document.getElementById("cnv");  ctx = cnv.getContext("2d");
-        cnv.addEventListener("mousedown", onMD, false);
+
+        // canvasWay
+        // cnv = document.getElementById("cnv");  ctx = cnv.getContext("2d");
+        // cnv.addEventListener("mousedown", onMD, false);
         
         fopn = document.createElement("input");  
         fopn.setAttribute("type", "file");
@@ -394,7 +411,7 @@ function resetedAllAfter(){
 }
 
 
-// ######################## Move Canvas Event ########################
+// ######################## Move Canvas Event(decepertaed) ########################
 function onMD(e) {  mouse={x:e.clientX-ioff.x, y:e.clientY-ioff.y};  document.addEventListener("mousemove",onMM,false);  document.addEventListener("mouseup",onMU,false);  }
 function onMM(e) {ioff.x=e.clientX-mouse.x;  ioff.y=e.clientY-mouse.y;moveCurr(curr);}
 function onMU(e) {  document.removeEventListener("mousemove",onMM,false);  document.removeEventListener("mouseup",onMU,false);  }
@@ -506,7 +523,7 @@ function resize(e) {
     limitedvih = Math.max(720,vih)
     limitedviw = Math.max(720,viw)
 
-    updateResize()
+    // updateResize()
 }
     
 function updateResize(){
@@ -761,7 +778,8 @@ function update()
         //toBlock("➜",2)
         cnt += toBlock(toKB(os)) + "<span id=\"compressed-arrow\">➜</span>"
         + toBlock("<b id=\"compressed-size\">"+toKB(ns)+"</b>") + toBlock("<span id=\"compressed-percentage\">" + (100*(ns-os)/os).toFixed(1)+" %", 5 + "</span></div></div>");
-        if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
+        //if(i<pngs.length) cnt += toBlock("<big>✖</big>",2);
+        if(i<pngs.length) cnt += " <span style=\"width: 2em;text-align: right;font-size: 11px;\"><big>✖</big></span>";
         li.innerHTML = cnt;
         var btncontainer = document.createElement("div");
         btncontainer.id="btn-container";
@@ -773,21 +791,14 @@ function update()
 
     }
 
-    // Canvas Size
-    var dpr = getDPR();
-    var iw = window.innerWidth-2;
-
-    //Changed to fixed value
-    // var pw = 720;  //Math.floor(Math.min(iw-500, iw/2)*dpr)
-    // var ph = 720;  //Math.floor(limitedvih*dpr)
-    var pw = Math.floor(limitedviw*dpr);
-    var ph = Math.floor(limitedvih*dpr);
-        
-    cnv.width = pw;  cnv.height = ph;
-    // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(16/getDPR())+"px;"
-    var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
-    cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
-    // cnv.setAttribute("style", aval+"width:"+(720)+"px; height:"+(720)+"px;");
+    // canvasWay - Canvas Size
+    // var dpr = getDPR();
+    // var iw = window.innerWidth-2;
+    // var pw = Math.floor(limitedviw*dpr);
+    // var ph = Math.floor(limitedvih*dpr);
+    // cnv.width = pw;  cnv.height = ph;
+    // var aval = "cursor:grab; cursor:-moz-grab; cursor:-webkit-grab; background-size:"+(30)+"px;"
+    // cnv.setAttribute("style", aval+"width:"+(pw/dpr)+"px; height:"+(ph/dpr)+"px;");
     
     
     // Update Current Image When Compressing
@@ -806,20 +817,7 @@ function update()
 
         // imageWay;
         var p = pngs[curr]
-        // var rx = (pw-p.width)/2, ry = (ph-p.height)/2;
-        // if(rx<0) ioff.x = Math.max(rx, Math.min(-rx, ioff.x*getDPR()))/getDPR();
-        // if(ry<0) ioff.y = Math.max(ry, Math.min(-ry, ioff.y*getDPR()))/getDPR();        
-        // var cx = (rx>0) ? rx : Math.min(0, Math.max(2*rx, ioff.x*getDPR()+rx));
-        // var cy = (ry>0) ? ry : Math.min(0, Math.max(2*ry, ioff.y*getDPR()+ry));
-
-        console.log("width",p.width);
-        console.log("height",p.height)
         readWriteFile(p.ndata,p.name,p.width,p.height)
-        // console.log("cx",cx/2)
-        // console.log("cy",cy/2)
-        // console.log("leftx",limitedviw - cx)
-        // console.log("lefty",limitedvih - cy)
-        // imgEl.setAttribute("style", "width:"+(limitedviw - cx)+"px; height:"+(limitedvih - cy)+"px;transform:translate("+(cx/2)+"px,"+(cy/2) + "px);");
 
     }
 
@@ -832,23 +830,46 @@ function update()
 
 }
 
-//需要 Create 一个 Temp PlaceHolder
-
-const tempDic = "./asset/temp"
+// ######################## I/O ########################
 
 
-function cleanTemp(){
 
-    fs.readdir(tempDic, (err, files) => {
+const tempDic = "/tmp/pngm"
+function mkdirSync(dirPath) {
+    try {
+      fs.mkdirSync(dirPath)
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err
+    }
+}
+
+function deleteFolderRecursive(path) {
+    if (fs.existsSync(path)) {
+      fs.readdirSync(path).forEach(function(file, index){
+        var curPath = path + "/" + file;
+        if (fs.lstatSync(curPath).isDirectory()) { // recurse
+          deleteFolderRecursive(curPath);
+        } else { // delete file
+          fs.unlinkSync(curPath);
+        }
+      });
+      fs.rmdirSync(path);
+    }
+};
+
+function cleanTemp(dirPath){
+    
+    fs.readdir(dirPath, (err, files) => {
         if (err) throw err;
         
         for (const file of files) {
-            fs.unlink(path.join(tempDic, file), err => {
+            fs.unlink(path.join(dirPath, file), err => {
             if (err) throw err;
             });
         }
     });
 }
+
 
 function readWriteFile(req,name,width,height) {
         const prefix = name.replace(/\.[^/.]+$/, "");
@@ -857,8 +878,8 @@ function readWriteFile(req,name,width,height) {
         const tempDst = tempDic + '/' + tempFileName
 
         // Viewer创立前必须 销毁
-        if(document.getElementById('img-element').viewer){
-            document.getElementById('img-element').viewer.destroy();
+        if(document.getElementById('img-container').viewer){
+            document.getElementById('img-container').viewer.destroy();
         }
 
         console.log(tempDst);
@@ -887,16 +908,30 @@ function readWriteFile(req,name,width,height) {
             var secondPromise = new Promise(function(resolve, reject){
 
                 //需要去掉
-                imgEl.src = tempDst;
+                // imgEl.src = tempDst;
 
 
 
                 //需要修改 Viewer.jS
-                const viewer = new Viewer(document.getElementById('img-element'), {
+                const viewer = new Viewer(document.getElementById('img-container'), {
                     url:tempDst,
                     inline: true,
-                    fullscreen:true
-                },width,height);
+                    fullscreen:false,
+                    navbar:false,
+                    toolbar: {
+                        zoomIn: 4,
+                        zoomOut: 4,
+                        oneToOne: 4,
+                        reset: 4,
+                        prev: 0,
+                        play: 0,
+                        next: 0,
+                        rotateLeft: 4,
+                        rotateRight: 4,
+                        flipHorizontal: 0,
+                        flipVertical: 0,
+                      }
+                },width,height,name);
 
                 setTimeout(function(){
                     resolve()

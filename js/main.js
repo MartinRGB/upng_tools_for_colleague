@@ -8,6 +8,25 @@ const BrowserWindow = electron.BrowserWindow
 const path = require('path')
 const url = require('url')
 
+
+const Promise = require('promise');
+const fs = require('fs')
+const tempDic = "/tmp/pngm"
+
+function deleteFolderRecursive(path) {
+    if (fs.existsSync(path)) {
+      fs.readdirSync(path).forEach(function(file, index){
+        var curPath = path + "/" + file;
+        if (fs.lstatSync(curPath).isDirectory()) { // recurse
+          deleteFolderRecursive(curPath);
+        } else { // delete file
+          fs.unlinkSync(curPath);
+        }
+      });
+      fs.rmdirSync(path);
+    }
+};
+
 const { Menu } = require('electron')
 const template = [
   {
@@ -154,11 +173,19 @@ function createWindow () {
     // Dereference the window object, usually you would store windows
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
-    mainWindow = null
+
+    var myFirstPromise = new Promise(function(resolve, reject){
+      deleteFolderRecursive(tempDic);
+      resolve()
+    });
+    myFirstPromise.then(function(){
+      mainWindow = null;
+    })
   })
 
 
 }
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

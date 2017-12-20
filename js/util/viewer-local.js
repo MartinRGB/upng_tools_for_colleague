@@ -14,6 +14,9 @@
 	(global.Viewer = factory());
 }(this, (function () { 'use strict';
 
+
+const Promise = require('promise');
+
 var DEFAULTS = {
   // Enable inline mode
   inline: false,
@@ -415,6 +418,10 @@ function removeClass(element, value) {
     return;
   }
 
+  if(!element){
+    return;
+  }
+
   if (isNumber(element.length)) {
     each(element, function (elem) {
       removeClass(elem, value);
@@ -724,7 +731,8 @@ var IS_SAFARI_OR_UIWEBVIEW = navigator && /(Macintosh|iPhone|iPod|iPad).*AppleWe
 function getImageNaturalSizes(image, callback) {
   // Modern browsers (except Safari)
   if (image.naturalWidth && !IS_SAFARI_OR_UIWEBVIEW) {
-    callback(image.naturalWidth, image.naturalHeight);
+    // callback(image.naturalWidth, image.naturalHeight);
+    callback(inputWidth, inputHeight);
     return;
   }
 
@@ -732,7 +740,8 @@ function getImageNaturalSizes(image, callback) {
   var body = document.body || document.documentElement;
 
   newImage.onload = function () {
-    callback(newImage.width, newImage.height);
+    // callback(newImage.width, newImage.height);
+    callback(inputWidth, inputHeight);
     body.removeChild(newImage);
   };
 
@@ -1009,26 +1018,29 @@ var render = {
     });
   },
   renderImage: function renderImage(callback) {
-    var image = this.image,
-        imageData = this.imageData;
+      // console.log('rendered')
+      var image = this.image,
+          imageData = this.imageData;
+      setStyle(image, extend({
+        width: imageData.width,
+        height: imageData.height,
+        marginLeft: imageData.left,
+        marginTop: imageData.top + 26
+      }, getTransforms(imageData)));
 
 
-    setStyle(image, extend({
-      width: imageData.width,
-      height: imageData.height,
-      marginLeft: imageData.left,
-      marginTop: imageData.top
-    }, getTransforms(imageData)));
 
-    if (isFunction(callback)) {
-      if (this.transitioning) {
-        addListener(image, EVENT_TRANSITION_END, callback, {
-          once: true
-        });
-      } else {
-        callback();
+
+      if (isFunction(callback)) {
+        if (this.transitioning) {
+          addListener(image, EVENT_TRANSITION_END, callback, {
+            once: true
+          });
+        } else {
+          callback();
+        }
       }
-    }
+    
   },
   resetImage: function resetImage() {
     var image = this.image;
@@ -1170,6 +1182,9 @@ var handlers = {
     }
   },
   load: function load() {
+
+    console.log('loaded')
+
     var _this = this;
 
     var options = this.options,
@@ -1187,14 +1202,15 @@ var handlers = {
       return;
     }
 
+
     removeClass(image, CLASS_INVISIBLE);
+
 
     image.style.cssText = 'width:0;' + 'height:0;' + ('margin-left:' + viewerData.width / 2 + 'px;') + ('margin-top:' + viewerData.height / 2 + 'px;') + 'max-width:none!important;' + 'visibility:visible;';
 
     this.initImage(function () {
-      toggleClass(image, CLASS_TRANSITION, options.transition);
-      toggleClass(image, CLASS_MOVE, options.movable);
 
+      
       _this.renderImage(function () {
         _this.viewed = true;
         dispatchEvent(_this.element, EVENT_VIEWED, {
@@ -1203,7 +1219,12 @@ var handlers = {
           image: image
         });
       });
+
+      console.log('transition set here')
+      toggleClass(image, CLASS_TRANSITION, options.transition);
+      toggleClass(image, CLASS_MOVE, options.movable);
     });
+
   },
   loadImage: function loadImage(e) {
     var image = e.target;
@@ -1229,12 +1250,20 @@ var handlers = {
         width = parentHeight * aspectRatio;
       }
 
+
+      // console.log(("viewer",naturalWidth))
+      // console.log(("viewer",naturalHeight))
+
+
       setStyle(image, {
         width: width,
         height: height,
         marginLeft: (parentWidth - width) / 2,
-        marginTop: (parentHeight - height) / 2
+        marginTop: (parentHeight - height) / 2 + 26
       });
+
+
+
     });
   },
   keydown: function keydown(e) {
@@ -1402,10 +1431,12 @@ var handlers = {
     this.initContainer();
     this.initViewer();
     this.renderViewer();
-    this.renderList();
+    // **** change ****
+    // this.renderList();
 
     if (this.viewed) {
       this.initImage(function () {
+        // console.log('resized')
         _this2.renderImage();
       });
     }
@@ -1589,14 +1620,18 @@ var methods = {
       return this;
     }
 
-    var item = this.items[index];
-    var img = item.querySelector('img');
-    var url = getData(img, 'originalUrl');
-    var alt = img.getAttribute('alt');
+    // **** change ****
+    // var item = this.items[index];
+    // var img = item.querySelector('img');
+    // var url = getData(img, 'originalUrl');
+    // var alt = img.getAttribute('alt');
     var image = document.createElement('img');
 
-    image.src = url;
-    image.alt = alt;
+
+    // **** change ****
+    // image.src = url;
+    // image.alt = alt;
+    image.src = inputUrl;
 
     if (dispatchEvent(element, EVENT_VIEW, {
       originalImage: this.images[index],
@@ -1608,8 +1643,9 @@ var methods = {
 
     this.image = image;
 
-    removeClass(this.items[this.index], CLASS_ACTIVE);
-    addClass(item, CLASS_ACTIVE);
+    // **** change ****
+    // removeClass(this.items[this.index], CLASS_ACTIVE);
+    // addClass(item, CLASS_ACTIVE);
 
     this.viewed = false;
     this.index = index;
@@ -1620,7 +1656,8 @@ var methods = {
     canvas.appendChild(image);
 
     // Center current item
-    this.renderList();
+    // **** change ****
+    // this.renderList();
 
     // Clear title
     empty(title);
@@ -1630,7 +1667,8 @@ var methods = {
       var imageData = _this3.imageData;
 
 
-      title.textContent = alt + ' (' + imageData.naturalWidth + ' \xD7 ' + imageData.naturalHeight + ')';
+      // imageData.naturalWidth  imageData.naturalHeight
+      title.textContent = inputName + ' (' + inputWidth + ' \xD7 ' + inputHeight + ')';
     }, {
       once: true
     });
@@ -1742,6 +1780,7 @@ var methods = {
       }
 
       if (changed) {
+        // console.log('moved')
         this.renderImage();
       }
     }
@@ -1835,6 +1874,7 @@ var methods = {
       imageData.width = newWidth;
       imageData.height = newHeight;
       imageData.ratio = ratio;
+      // console.log('zoomed')
       this.renderImage();
 
       if (hasTooltip) {
@@ -1871,6 +1911,7 @@ var methods = {
 
     if (isNumber(degree) && this.viewed && !this.played && this.options.rotatable) {
       imageData.rotate = degree;
+      // console.log('rotated')
       this.renderImage();
     }
 
@@ -1912,7 +1953,7 @@ var methods = {
     var scaleY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : scaleX;
     var imageData = this.imageData;
 
-
+    console.log('scaled')
     scaleX = Number(scaleX);
     scaleY = Number(scaleY);
 
@@ -1930,6 +1971,7 @@ var methods = {
       }
 
       if (changed) {
+        // console.log('scaled')
         this.renderImage();
       }
     }
@@ -2066,7 +2108,8 @@ var methods = {
 
     this.initContainer();
     this.viewerData = extend({}, this.containerData);
-    this.renderList();
+    // **** change ****
+    // this.renderList();
     this.initImage(function () {
       _this6.renderImage(function () {
         if (options.transition) {
@@ -2112,7 +2155,8 @@ var methods = {
 
     this.viewerData = extend({}, this.parentData);
     this.renderViewer();
-    this.renderList();
+    // **** change ****
+    // this.renderList();
     this.initImage(function () {
       _this7.renderImage(function () {
         if (options.transition) {
@@ -2204,6 +2248,7 @@ var methods = {
   reset: function reset() {
     if (this.viewed && !this.played) {
       this.imageData = extend({}, this.initialImageData);
+      // console.log('reseted')
       this.renderImage();
     }
 
@@ -2220,13 +2265,18 @@ var methods = {
     var indexes = [];
 
     // Destroy viewer if the target image was deleted
-    if (isImg && !element.parentNode) {
+    // **** change ****
+    // !element.parentNode
+    if (isImg && !element) {
+      console.log('delete!')
       return this.destroy();
     }
 
     var images = [];
 
-    each(isImg ? [element] : element.querySelectorAll('img'), function (image) {
+    // **** change ****
+    // each(isImg ? [element] : element.querySelectorAll('img'), function (image) {
+    each([element], function (image) {
       if (options.filter) {
         if (options.filter(image)) {
           images.push(image);
@@ -2457,7 +2507,7 @@ var others = {
 };
 
 var AnotherViewer = WINDOW.Viewer;
-var inputWidth,inputHeight;
+var inputWidth,inputHeight,inputUrl,inputName;
 var Viewer = function () {
   /**
    * Create a new Viewer.
@@ -2469,14 +2519,17 @@ var Viewer = function () {
 	classCallCheck(this, Viewer);
 	
 	inputWidth = arguments[2];
-	inputHeight = arguments[3];
+  inputHeight = arguments[3];
+  inputUrl = arguments[1].url;
+  inputName = arguments[4];
+  
 
-	if(inputWidth != null){
-		console.log(inputWidth);
-	}
-	if(inputHeight != null){
-		console.log(inputHeight);
-	}
+	// if(inputWidth != null){
+	// 	console.log("inputWidth",inputWidth);
+	// }
+	// if(inputHeight != null){
+	// 	console.log("inputWidth",inputHeight);
+	// }
 
     if (!element || element.nodeType !== 1) {
       throw new Error('The first argument is required and must be an element.');
@@ -2603,9 +2656,11 @@ var Viewer = function () {
         return;
       }
 
-      var parent = element.parentNode;
-      var template = document.createElement('div');
+      // **** change ****
+      // var parent = element.parentNode;
+      var parent = element;
 
+      var template = document.createElement('div');
       template.innerHTML = TEMPLATE;
 
       var viewer = template.querySelector('.' + NAMESPACE + '-container');
@@ -2704,7 +2759,10 @@ var Viewer = function () {
           });
         }
 
-        parent.insertBefore(viewer, element.nextSibling);
+        // parent.insertAfter(viewer, element.nextSibling);
+        // **** change ****
+        parent.appendChild(viewer);
+
       } else {
         addClass(button, CLASS_CLOSE);
         addClass(viewer, CLASS_FIXED);
@@ -2725,7 +2783,7 @@ var Viewer = function () {
       }
 
       this.ready = true;
-
+      this.viewer.removeChild(button);
       dispatchEvent(element, EVENT_READY);
     }
   }, {

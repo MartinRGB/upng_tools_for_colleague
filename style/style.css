@@ -7,6 +7,7 @@
 		color:#3a3a3a;
 		background-color:#f6f8fa;
 		user-select: none;
+		overflow: hidden;
 	}
 	
 	h1 {
@@ -503,6 +504,17 @@
 		margin-top: 16px;
 		margin-right: 16px;
 		background:#7A8CF5;
+		border: 1px solid rgba(0, 0, 0, 0.05);
+		box-shadow: 0 4px 6px rgba(50,50,93,.11), 0 1px 3px rgba(0,0,0,.08);
+		text-shadow: 0px 1px 2px #4c537d;
+	}
+
+	#btn-container button span{
+		pointer-events: none;
+	}
+
+	#btn-container button:active{
+		background-color: #4654a5;
 	}
 
 	#btn-container button span{
@@ -557,6 +569,21 @@
 	  }
 	  .icon-refresh---FontAwesome:before {
 		content: "\e902";
+	  }
+	  .icon-undo:before {
+		content: "\e965";
+	  }
+	  .icon-redo:before {
+		content: "\e966";
+	  }
+	  .icon-spinner11:before {
+		content: "\e984";
+	  }
+	  .icon-zoom-in:before {
+		content: "\e987";
+	  }
+	  .icon-zoom-out:before {
+		content: "\e988";
 	  }
 
 
@@ -735,16 +762,6 @@
 	
 /* 	Viewer */
 
-*!
-* Viewer.js v1.0.0-beta
-* https://github.com/fengyuanchen/viewerjs
-*
-* Copyright (c) 2015-2017 Chen Fengyuan
-* Released under the MIT license
-*
-* Date: 2017-12-17T10:29:28.671Z
-*/
-
 .viewer-zoom-in::before,
 .viewer-zoom-out::before,
 .viewer-one-to-one::before,
@@ -840,7 +857,8 @@
 }
 
 .viewer-container {
- background-color: rgba(0, 0, 0, .5);
+ /* background-color: rgba(0, 0, 0, .5); */
+ background-color:transparent;
  bottom: 0;
  direction: ltr;
  font-size: 0;
@@ -963,6 +981,10 @@
  top: 0;
 }
 
+.viewer-toolbar{
+	margin-bottom: 3px;
+}
+
 .viewer-toolbar ul {
  display: inline-block;
  margin: 0 auto 5px;
@@ -970,8 +992,9 @@
  padding: 3px 0;
 }
 
+
 .viewer-toolbar li {
- background-color: rgba(0, 0, 0, .5);
+ background-color: rgba(81, 86, 102, 0.5);
  border-radius: 50%;
  cursor: pointer;
  float: left;
@@ -991,7 +1014,7 @@
 }
 
 .viewer-toolbar li + li {
- margin-left: 1px;
+ margin-left: 6px;
 }
 
 .viewer-toolbar .viewer-small {
@@ -1034,11 +1057,11 @@
 }
 
 .viewer-title {
- color: #ccc;
+ color: #515666;
  display: inline-block;
  font-size: 12px;
  line-height: 1;
- margin: 0 5% 5px;
+ margin: 0 5% 8px;
  max-width: 90%;
  opacity: .8;
  overflow: hidden;
