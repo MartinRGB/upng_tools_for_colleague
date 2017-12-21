@@ -1,6 +1,6 @@
 optimize for UPNG Minifier(Interface designed by Abel)
 
-![preview](https://raw.githubusercontent.com/MartinRGB/upng_tools_for_colleague/electron/art/v020.png)
+![preview](https://raw.githubusercontent.com/MartinRGB/upng_tools_for_colleague/electron/art/v040mac.png)
 
 ## TODO
 
