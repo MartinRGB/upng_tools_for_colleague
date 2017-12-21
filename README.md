@@ -5,9 +5,11 @@ optimize for UPNG Minifier(Interface designed by Abel)
 ## TODO
 
 - [ ] Redesign the ugly Interface
-- [x] Estimate the compression ratio for experience
+- [ ] add JPG/JPEG GIF APNG Support,add Lossy/Lossless swticher
 - [ ] animation by using [animateplus](https://github.com/bendc/animateplus) | [popmotion](https://github.com/Popmotion/popmotion)
-- [ ] I need reload btn.
+- [ ] package for post process
+- [ ] I need a reload btn.
+- [ ] paid & free version
 
 ## Build Setup
 
