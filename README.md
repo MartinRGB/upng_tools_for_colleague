@@ -5,7 +5,7 @@ optimize for UPNG Minifier(Interface designed by Abel)
 ## TODO
 
 - [ ] Redesign the ugly Interface
-- [ ] Estimate the compression ratio for experience
+- [x] Estimate the compression ratio for experience
 - [ ] animation by using [animateplus](https://github.com/bendc/animateplus)
 - [ ] I need reload btn.
 
