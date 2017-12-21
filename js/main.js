@@ -175,7 +175,9 @@ function createWindow () {
     // when you should delete the corresponding element.
 
     var myFirstPromise = new Promise(function(resolve, reject){
-      deleteFolderRecursive(tempDic);
+      if(fs.existsSync(tempDic)){
+        deleteFolderRecursive(tempDic);
+      }
       resolve()
     });
     myFirstPromise.then(function(){

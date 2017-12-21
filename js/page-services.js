@@ -222,10 +222,29 @@ const PageServices = {
         tempCounter = 0;
         tempArray = [];
         hasCreatedFolder = false;
-        if(fs.existsSync(tempDic)){
-            cleanTemp(tempDic);
+
+        if(fs.existsSync(temp1stDic)){
+            console.log("1st temp folder existsted")
+
+            if(fs.existsSync(tempDic)){
+                
+                cleanTemp(tempDic);
+                console.log("2nd temp folder cleaned")
+            }
+            else{
+               
+                mkdirSync(tempDic)
+                console.log("2nd temp folder created")
+            }
         }
-        mkdirSync(tempDic)
+        else{
+           
+            mkdirSync(temp1stDic)
+            console.log("1st temp folder created")
+
+            mkdirSync(tempDic)
+            console.log("2nd temp folder created")
+        }
         
         lmiddle = document.getElementById("l-middle");
         lbottom = document.getElementById("l-bottom");
@@ -235,9 +254,6 @@ const PageServices = {
         windowEl = document.getElementById("window-area");
         imgEl  = document.getElementById("img-element");
         imgContainer = document.getElementById("img-container");
-
-        // imgEl.src = "./asset/grid.png"
-
 
         // canvasWay
         // cnv = document.getElementById("cnv");  ctx = cnv.getContext("2d");
@@ -833,7 +849,7 @@ function update()
 // ######################## I/O ########################
 
 
-
+const temp1stDic = "/tmp"
 const tempDic = "/tmp/pngm"
 function mkdirSync(dirPath) {
     try {
