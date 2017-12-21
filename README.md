@@ -6,7 +6,7 @@ optimize for UPNG Minifier(Interface designed by Abel)
 
 - [ ] Redesign the ugly Interface
 - [x] Estimate the compression ratio for experience
-- [ ] animation by using [animateplus](https://github.com/bendc/animateplus)
+- [ ] animation by using [animateplus](https://github.com/bendc/animateplus) | [popmotion](https://github.com/Popmotion/popmotion)
 - [ ] I need reload btn.
 
 ## Build Setup
