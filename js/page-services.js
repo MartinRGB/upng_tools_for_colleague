@@ -224,26 +224,26 @@ const PageServices = {
         hasCreatedFolder = false;
 
         if(fs.existsSync(temp1stDic)){
-            console.log("1st temp folder existsted")
+            //console.log("1st temp folder existsted")
 
             if(fs.existsSync(tempDic)){
                 
                 cleanTemp(tempDic);
-                console.log("2nd temp folder cleaned")
+                //console.log("2nd temp folder cleaned")
             }
             else{
                
                 mkdirSync(tempDic)
-                console.log("2nd temp folder created")
+                //console.log("2nd temp folder created")
             }
         }
         else{
            
             mkdirSync(temp1stDic)
-            console.log("1st temp folder created")
+            //console.log("1st temp folder created")
 
             mkdirSync(tempDic)
-            console.log("2nd temp folder created")
+            //console.log("2nd temp folder created")
         }
         
         lmiddle = document.getElementById("l-middle");
