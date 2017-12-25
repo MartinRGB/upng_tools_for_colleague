@@ -447,7 +447,7 @@ function resetedAllAfter(){
             document.getElementById('reset-loading').setAttribute("style","transform:translate(23px,5px) scale(0);opacity: 0;")
             document.getElementById('reset-btn').setAttribute("style","")
             document.getElementById('eRNG').value = 500;
-            downloadToCompress();
+            compressToDownload();
         }, 250);
     });
 
