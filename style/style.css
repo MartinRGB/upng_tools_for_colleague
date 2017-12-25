@@ -1156,6 +1156,41 @@
    display: none;
  }
 }
+
+.notie-textbox {
+	color: #FFFFFF;
+	padding: 20px;
+}
+
+.notie-background-error {
+	background-color: #F14848;
+}
+
+.notie-alert {
+	cursor: pointer;
+}
+
+.notie-container {
+	font-size: 1.0rem;
+	height: auto;
+	left: 0;
+	position: fixed;
+	text-align: center;
+	width: 100%;
+	z-index: 2147483647;
+	box-sizing: border-box;
+	box-shadow:0px 0px 5px 0px rgba(0, 0, 0, 0.5) ;
+
+}
+
+.notie-textbox-inner {
+	margin: 0 auto;
+	max-width: 900px;
+}
+
+.notice-container{
+	z-index: 10000;
+}
 	
 	
 	

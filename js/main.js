@@ -11,7 +11,10 @@ const url = require('url')
 
 const Promise = require('promise');
 const fs = require('fs')
-const tempDic = "/tmp/pngm"
+
+var temp1stDic
+var tempDic
+// const tempDic = "/tmp/pngm"
 
 function deleteFolderRecursive(path) {
     if (fs.existsSync(path)) {
@@ -133,6 +136,18 @@ function addMenu(){
 function createWindow () {
   // Create the browser window.
   var titleHeight = 24;
+
+  if(process.platform == 'darwin'){
+    temp1stDic = "/tmp"
+}
+  else if(process.platform == 'win32'){
+      temp1stDic = "/Temp"
+  }
+
+
+  tempDic = temp1stDic + '/pngm'
+  console.log(tempDic)
+
   mainWindow = new BrowserWindow({
     width: 1200, 
     height: 720+titleHeight,

@@ -8,7 +8,8 @@ const UZIP = require('./js/util/UZIP-local.js')
 var Promise = require('promise');
 const fs = require('fs')
 const path = require('path');
-const Viewer = require('./js/util/viewer-local.js')
+const Viewer = require('./js/util/viewer-local.js');
+var notie = require('notie'); 
 
 var pngs = [];
 var curr = -1;
@@ -44,6 +45,11 @@ var addIndex = -1;
 var tempCounter = 0;
 var tempArray = [];
 
+// Temp Folder
+var temp1stDic
+var tempDic
+// var tempDic = "/tmp/pngm"
+
 // ######################## I/O ########################
 // ###### save ######
 function save(buff, path)
@@ -69,7 +75,15 @@ function loadURL(path, resp)
     request.onload = urlLoaded;
     request.send();
 }
-function urlLoaded(e) {  addIndex++;addPNG(e.target.response, e.target._fname);  }
+function urlLoaded(e) {
+    addIndex++;
+    addPNG(e.target.response, e.target._fname,addIndex);
+}
+
+function getFileExtension(filename){
+    console.log(filename.split('.').pop())
+    return filename.split('.').pop();
+}
 
 
 // ######################## Item Event ########################
@@ -95,7 +109,7 @@ function itemClick(e) {
 // ###### add ######
 function addPNG(buff, name,index)
 {
-
+        
     if(canInitLoading){
         document.getElementById('window-scale-container').setAttribute("style","transform:scale(0);opacity:0");
         document.getElementById('window-loader').setAttribute("style","transform:translate(-50%,-50%) scale(0.25);opacity:1;");
@@ -106,6 +120,7 @@ function addPNG(buff, name,index)
         compressCounter = prevliLength;
         multiThreadRead(buff,name,index);
     });
+
     
 
 }
@@ -213,6 +228,18 @@ const PageServices = {
         // console.log(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'))
         // console.log(process.env.HOME)
         // console.log(process.platform)
+
+        if(process.platform == 'darwin'){
+            temp1stDic = "/tmp"
+        }
+        else if(process.platform == 'win32'){
+            temp1stDic = "/Temp"
+        }
+
+
+        tempDic = temp1stDic + '/pngm'
+        console.log(tempDic)
+
         hasAdded = false;
         shouldListAnim = false;
         nowliLength = 0;
@@ -463,29 +490,59 @@ function moveCurr(curr)
 
 // ######################## Drag&Drop Event ########################
 function onFileDrop(e) {  cancel(e);
+
+    // if(getFileExtension(e.target.filename) == 'png'){
+
+    // }
+    // else{
+    //     afterAdd();
+    //     alert('不支持' + getFileExtension(e.target._file.name) + '格式的文件！')
+    // }
+
     var fls = e.dataTransfer? e.dataTransfer.files : e.target.files;
+
     for(var i=0; i<fls.length; i++) {
 
         // console.log(fls[i].name)
         var f = fls[i];
         var r = new FileReader();
         r._file = f;
-        r.onload = dropLoaded;
-        r.readAsArrayBuffer(f);
+
+
+        console.log(r._file.name)
+
+        if(getFileExtension(r._file.name) == 'png'){
+            r.onload = dropLoaded;
+            r.readAsArrayBuffer(f);
+            nowliLength++;
+        }
+        else{
+            afterAdd();
+            notie.alert({ 
+                type: 3, 
+                text: getFileExtension(r._file.name) + ' is not supported',
+                time:1,
+                position: 'top', });
+            //alert('不支持' + getFileExtension(r._file.name) + '格式的文件！')
+        }
+
     }
     // 一旦上传文件，立即更新列表数据
     // unhighlight(e);  
 
-    nowliLength += fls.length;
+    // Old Style
+    //nowliLength += fls.length;
 }			
 
 function dropLoaded(e) {  
+
     addIndex++;
     addPNG(e.target.result, e.target._file.name,addIndex); 
     return new Promise((resolve, reject) => {      
         compressToDownload();    
         console.log('loaded');
     });
+
 }
 
 
@@ -849,8 +906,6 @@ function update()
 // ######################## I/O ########################
 
 
-const temp1stDic = "/tmp"
-const tempDic = "/tmp/pngm"
 function mkdirSync(dirPath) {
     try {
       fs.mkdirSync(dirPath)
